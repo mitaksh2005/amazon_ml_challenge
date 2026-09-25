@@ -1,0 +1,2999 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Business entity resolution research report</title>
+<style>
+:root{font-family:system-ui,sans-serif;color:#172331;background:#f4f6f8}
+body{margin:0;display:grid;grid-template-columns:290px minmax(0,1fr)}
+nav{position:sticky;top:0;height:100vh;overflow:auto;padding:20px;box-sizing:border-box;background:#e9eef3;font-size:12px}
+main{max-width:1280px;padding:36px 42px;background:white;overflow:hidden}
+h1,h2,h3,h4{line-height:1.2;color:#112e4b} h2{margin-top:2.5em;border-top:1px solid #d9e1e8;padding-top:1em}
+p,li{line-height:1.65} a{color:#14619b} table{border-collapse:collapse;display:block;overflow:auto;font-size:12px;margin:20px 0;width:100%}
+th,td{border:1px solid #cdd8e1;padding:9px;vertical-align:top;text-align:left}th{background:#edf3f8}
+pre{overflow:auto;padding:18px;background:#f0f3f7;line-height:1.45;font-size:12px}
+code{font-family:Consolas,monospace}.note{background:#fff7dc;padding:12px;font-size:13px}
+.mermaid{background:white} @media(max-width:900px){body{display:block}nav{position:relative;height:auto;max-height:220px}main{padding:20px}}
+@media print{nav,.note{display:none}body{display:block}main{max-width:none;padding:0}table{font-size:9px}pre{white-space:pre-wrap}}
+</style>
+<script>window.MathJax={tex:{inlineMath:[['\\(','\\)']],displayMath:[['\\[','\\]']]}};</script>
+<script defer src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-chtml.js"></script>
+</head><body><nav><strong>Report contents</strong><div class="toc">
+<ul>
+<li><a href="#precision-first-multi-source-business-entity-resolution-under-a-200-sagemaker-budget">Precision-first multi-source business entity resolution under a $200 SageMaker budget</a><ul>
+<li><a href="#1-executive-research-summary">1. Executive research summary</a><ul>
+<li><a href="#evidence-status-and-assumptions">Evidence status and assumptions</a></li>
+<li><a href="#structural-corrections-that-change-the-design">Structural corrections that change the design</a></li>
+</ul>
+</li>
+<li><a href="#2-literature-matrix">2. Literature matrix</a></li>
+<li><a href="#3-deep-reading-what-transfers-and-what-does-not">3. Deep reading: what transfers and what does not</a><ul>
+<li><a href="#31-transformer-and-graph-matchers">3.1 Transformer and graph matchers</a></li>
+<li><a href="#32-blocking-algorithms">3.2 Blocking algorithms</a></li>
+<li><a href="#33-foundations-and-current-contradictory-evidence">3.3 Foundations and current contradictory evidence</a></li>
+</ul>
+</li>
+<li><a href="#4-representation-retrieval-and-hard-negative-design">4. Representation, retrieval and hard-negative design</a><ul>
+<li><a href="#41-normalization-and-serialization">4.1 Normalization and serialization</a></li>
+<li><a href="#42-independent-retrieval-channels">4.2 Independent retrieval channels</a></li>
+<li><a href="#43-retriever-comparison-and-ann-configuration">4.3 Retriever comparison and ANN configuration</a></li>
+<li><a href="#44-proposed-negative-curriculum">4.4 Proposed negative curriculum</a></li>
+</ul>
+</li>
+<li><a href="#5-feature-dictionary-and-model-comparison">5. Feature dictionary and model comparison</a><ul>
+<li><a href="#51-feature-conventions">5.1 Feature conventions</a></li>
+<li><a href="#52-three-model-families">5.2 Three model families</a></li>
+<li><a href="#53-cross-encoder-scale-calculation">5.3 Cross-encoder scale calculation</a></li>
+</ul>
+</li>
+<li><a href="#6-mathematical-formulation-calibration-and-decisions">6. Mathematical formulation, calibration and decisions</a><ul>
+<li><a href="#61-similarities-and-retrieval-scores">6.1 Similarities and retrieval scores</a></li>
+<li><a href="#62-calibration">6.2 Calibration</a></li>
+<li><a href="#63-singleton-and-set-models">6.3 Singleton and set models</a></li>
+<li><a href="#64-metric-and-exact-global-threshold-optimizer">6.4 Metric and exact global-threshold optimizer</a></li>
+<li><a href="#65-conservative-graph-refinement">6.5 Conservative graph refinement</a></li>
+</ul>
+</li>
+<li><a href="#7-validation-protocol-and-experiment-ledger">7. Validation protocol and experiment ledger</a><ul>
+<li><a href="#71-five-fold-grouped-evaluation-with-realistic-distractors">7.1 Five-fold grouped evaluation with realistic distractors</a></li>
+<li><a href="#72-metrics-and-fold-reporting-template">7.2 Metrics and fold reporting template</a></li>
+<li><a href="#73-ablation-matrix-and-cost-accounting">7.3 Ablation matrix and cost accounting</a></li>
+<li><a href="#74-compute-gates">7.4 Compute gates</a></li>
+</ul>
+</li>
+<li><a href="#8-end-to-end-architecture-and-implementation-pseudocode">8. End-to-end architecture and implementation pseudocode</a><ul>
+<li><a href="#81-architecture">8.1 Architecture</a></li>
+<li><a href="#82-pseudocode-conventions">8.2 Pseudocode conventions</a></li>
+</ul>
+</li>
+<li><a href="#9-sagemaker-systems-plan-and-verified-pricing">9. SageMaker systems plan and verified pricing</a><ul>
+<li><a href="#91-price-basis-and-instance-selection">9.1 Price basis and instance selection</a></li>
+<li><a href="#92-data-layout-and-resource-plan">9.2 Data layout and resource plan</a></li>
+<li><a href="#93-avoiding-data-movement-bottlenecks">9.3 Avoiding data-movement bottlenecks</a></li>
+<li><a href="#94-managed-spot-checkpoints-and-execution-modes">9.4 Managed Spot, checkpoints and execution modes</a></li>
+<li><a href="#95-s3ebs-and-operational-cost-controls">9.5 S3/EBS and operational cost controls</a></li>
+</ul>
+</li>
+<li><a href="#10-chronological-sagemaker-runbook-and-200-allocation">10. Chronological SageMaker runbook and $200 allocation</a><ul>
+<li><a href="#101-complete-rerun-reservation-allocation-table-dependencies-follow-the-runbook">10.1 Complete rerun reservation (allocation table; dependencies follow the runbook)</a></li>
+<li><a href="#102-budget-ledger">10.2 Budget ledger</a></li>
+</ul>
+</li>
+<li><a href="#11-infrastructure-tiers-and-incremental-research-value">11. Infrastructure tiers and incremental research value</a></li>
+<li><a href="#12-reproducibility-and-acceptance-criteria">12. Reproducibility and acceptance criteria</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</nav><main>
+<p class="note">Companion rendering of <a href="research_report.md">the Markdown report</a>.
+Equations and the Mermaid diagram use public CDN scripts when internet access is available.
+<a href="research_papers/manifest.json">Paper manifest</a> ·
+<a href="aws_pricing_snapshot.json">AWS price snapshot</a></p><h1 id="precision-first-multi-source-business-entity-resolution-under-a-200-sagemaker-budget">Precision-first multi-source business entity resolution under a $200 SageMaker budget</h1>
+<p>Technical research report · 25 September 2026 · Pricing basis: us-east-1, USD</p>
+<h2 id="1-executive-research-summary">1. Executive research summary</h2>
+<p><strong>Recommendation.</strong> Build a country-partitioned, sparse-first retrieval cascade with explicit numeric/contact conflicts, token rarity, a CPU gradient-boosted matcher, calibrated probabilities, and an out-of-fold singleton/set decision model. Make dense retrieval a measured rescue channel. Restrict cross-encoding to ambiguous cases. Keep the default output as reference-centered match sets; enable graph changes only after an entity-level validation gain.</p>
+<p>The task is anchored one-to-many retrieval: 1.73M reference records, roughly 10M external evaluation records, 26.4M records to prepare overall. Exhaustive comparison would require approximately 17.3 trillion reference–candidate pairs. At 40 candidates per reference, the upper planning volume becomes 69.2M pairs. This reduction alone does not ensure precision: retrieval must preserve distinctive evidence, and acceptance must explicitly allow an empty set.</p>
+<p>The strongest empirical reasons for this architecture are the large-scale sparse results in <a href="https://pages.cs.wisc.edu/~anhai/papers1/sparkly-vldb2023.pdf">Sparkly</a>, the realistic difficulty axes in <a href="https://www.openproceedings.org/2024/conf/edbt/paper-14.pdf">WDC Products</a>, and the use of blocking plus feature-based matching in <a href="https://docs.overturemaps.org/guides/places/">Overture Places</a>. These establish useful mechanisms, not this dataset's achievable score.</p>
+<p><strong>Expected expenditure:</strong> a conditional planning total of <strong>$198.97</strong>, including $78.97 first-pass research/execution compute, $55 for a complete end-to-end rerun, $20 validation work, $20 ancillary storage/I/O, and $25 emergency reserve. All compute is budgeted at verified SageMaker On-Demand prices; Spot discounts are upside. No cloud jobs were launched for this investigation.</p>
+<p><strong>Highest expected marginal value, a research hypothesis:</strong> (1) reliable normalization plus rare-token retrieval; (2) numeric, phone, URL-path and geographic conflict features; (3) training on actual retrieved negatives and singleton false positives; (4) entity-level threshold selection and singleton modeling. Dense rescue is next if it recovers measured sparse misses. A global GNN, generative LLM matcher, and universal cross-encoder pass have weaker benefit-to-cost justification here.</p>
+<h3 id="evidence-status-and-assumptions">Evidence status and assumptions</h3>
+<ul>
+<li><strong>Published evidence</strong> below describes the cited source's own experiments.</li>
+<li><strong>Proposed</strong> denotes this report's design choices.</li>
+<li><strong>Estimated</strong> denotes arithmetic from explicitly stated resource/throughput assumptions.</li>
+<li><strong>NR</strong> means not run. No labels, evaluation data, scorer implementation, or measured throughput were supplied; therefore fold scores, ablation gains, and attained 98–99% recall cannot honestly be reported as results.</li>
+<li>Pending scorer confirmation, empty truth/empty prediction scores 1, and all other zero-overlap cases score 0.</li>
+<li>Pending ontology confirmation, “entity” means a particular physical business branch, not an entire chain or corporate family. Validate this before using branch conflicts or unique-anchor constraints.</li>
+<li>Complete match-set labels, including verified singletons, are required for the main supervised evaluation. Unlisted pairs in incomplete labels are unknown.</li>
+<li>The region default is us-east-1. Reprice before execution elsewhere; credits' eligible services and taxes depend on the account.</li>
+<li>The requested “Conservative $300–400” and “Recommended $600–700” tiers conflict with the hard $200 limit. They are preserved as <strong>optional, unfunded extensions</strong> in Section 11. The $200 plan is the recommendation for the available credits.</li>
+</ul>
+<h3 id="structural-corrections-that-change-the-design">Structural corrections that change the design</h3>
+<ol>
+<li>Ditto is <strong>PVLDB 14(1), 2020</strong>, associated with the VLDB 2021 conference cycle, not EMNLP 2020. <a href="https://arxiv.org/pdf/2004.00584">Primary paper</a></li>
+<li>A top-two margin is not a universal uniqueness test: both candidates can be true matches.</li>
+<li>Same-source negatives are unsafe when S2/S3 contain duplicates.</li>
+<li>A reference with \(m_i&gt;40\) true external records has recall at most \(40/m_i\) under a strict 40-record cap. Use an audited overflow path.</li>
+<li>ANN neighbor recall, semantic candidate recall, and compression retention are different measurements.</li>
+<li>A correct singleton can lose its entire entity score from one false prediction. If the singleton fraction is \(s\) and fraction \(a\) of those receive false predictions, their contribution to macro-score loss is exactly \(sa\) under the stated convention.</li>
+<li>A blocker miss is not evidence that the reference is a true singleton.</li>
+</ol>
+<h2 id="2-literature-matrix">2. Literature matrix</h2>
+<p>Scale is the source's experimental corpus/table size where verified; it is not a claim about this project. “—” means not applicable or not specified. Author lists use “et al.” where lengthy. Venue versions matter: preprints and final proceedings can report different results.</p>
+<table>
+<thead>
+<tr>
+<th>Paper / system; authors</th>
+<th>Year / venue</th>
+<th>Task; dataset scale</th>
+<th>Blocking method</th>
+<th>Matching model</th>
+<th>Hard negatives</th>
+<th>Graph method</th>
+<th>Key result / limitation</th>
+<th>Mechanism adopted</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="https://nhis.ipums.org/nhis/resources/Fellegi69.pdf">A Theory for Record Linkage</a>, Ivan P. Fellegi, Alan B. Sunter</td>
+<td>1969, JASA</td>
+<td>Linkage theory; no scale claim</td>
+<td>—</td>
+<td>Likelihood ratio</td>
+<td>—</td>
+<td>—</td>
+<td>Error-controlled linkage theory</td>
+<td>Agreement rarity and abstention</td>
+</tr>
+<tr>
+<td><a href="https://www.cs.utexas.edu/~ai-lab/pubs/ijcai03.pdf">String distance comparison</a>, William W. Cohen, Pradeep Ravikumar, Stephen E. Fienberg</td>
+<td>2003, IIWeb workshop at IJCAI</td>
+<td>Name matching; small benchmark collections</td>
+<td>Given comparisons</td>
+<td>String metrics / learned combination</td>
+<td>—</td>
+<td>—</td>
+<td>SoftTF-IDF strong on evaluated tasks</td>
+<td>Weighted fuzzy tokens</td>
+</tr>
+<tr>
+<td><a href="https://www.cs.cmu.edu/~shuchi/papers/clusteringfull.pdf">Correlation Clustering</a>, Nikhil Bansal, Avrim Blum, Shuchi Chawla</td>
+<td>2004, Machine Learning; FOCS 2002 predecessor</td>
+<td>Signed-graph theory</td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+<td>Agreement/disagreement optimization</td>
+<td>Complete-graph theory does not solve noisy sparse linkage automatically</td>
+<td>Preserve negative evidence</td>
+</tr>
+<tr>
+<td><a href="https://www.weiweicheng.com/research/papers/cheng-nips11.pdf">Exact F-measure maximization</a>, Krzysztof Dembczyński, Willem Waegeman, Weiwei Cheng, Eyke Hüllermeier</td>
+<td>2011, NeurIPS/NIPS</td>
+<td>Multilabel inference</td>
+<td>—</td>
+<td>Joint label/count probabilities</td>
+<td>—</td>
+<td>—</td>
+<td>Marginals alone can be insufficient</td>
+<td>Empty-set utility and set decisions</td>
+</tr>
+<tr>
+<td><a href="https://arxiv.org/pdf/1702.08734">GPU similarity search / FAISS</a>, Jeff Johnson, Matthijs Douze, Hervé Jégou</td>
+<td>2017 preprint; IEEE TBD online 2019</td>
+<td>95M images; billion-vector search</td>
+<td>IVFADC/PQ</td>
+<td>—</td>
+<td>—</td>
+<td>ANN neighborhoods</td>
+<td>Batched compressed search at scale</td>
+<td>CPU/GPU search choices</td>
+</tr>
+<tr>
+<td><a href="https://arxiv.org/pdf/1603.09320">HNSW</a>, Yury A. Malkov, Dmitry A. Yashunin</td>
+<td>2016 preprint; TPAMI 2020, online 2018</td>
+<td>Million-scale; 200M SIFT comparison</td>
+<td>Proximity graph search</td>
+<td>—</td>
+<td>—</td>
+<td>ANN graph only</td>
+<td>Speed/recall versus memory</td>
+<td>Pilot HNSW against IVF</td>
+</tr>
+<tr>
+<td><a href="https://proceedings.mlr.press/v70/guo17a/guo17a.pdf">Calibration of modern neural networks</a>, Chuan Guo, Geoff Pleiss, Yu Sun, Kilian Q. Weinberger</td>
+<td>2017, ICML</td>
+<td>Image/document classifiers</td>
+<td>—</td>
+<td>Post-hoc calibration</td>
+<td>—</td>
+<td>—</td>
+<td>Temperature scaling useful in tested settings</td>
+<td>Cheap held-out calibration</td>
+</tr>
+<tr>
+<td><a href="https://proceedings.mlr.press/v54/kull17a/kull17a.pdf">Beta calibration</a>, Meelis Kull, Telmo Silva Filho, Peter Flach</td>
+<td>2017, AISTATS</td>
+<td>Binary classifiers</td>
+<td>—</td>
+<td>Parametric probability mapping</td>
+<td>—</td>
+<td>—</td>
+<td>More flexible than logistic mapping</td>
+<td>Tree calibration candidate</td>
+</tr>
+<tr>
+<td><a href="https://arxiv.org/pdf/2004.00584">Ditto</a>, Yuliang Li, Jinfeng Li, Yoshihiko Suhara, AnHai Doan, Wang-Chiew Tan</td>
+<td>2020, PVLDB</td>
+<td>Pairwise EM; company tables originally 789k / 412k</td>
+<td>ZIP / TF-IDF; optional SBERT</td>
+<td>Transformer cross-encoder</td>
+<td>Similarity-biased labeled pairs</td>
+<td>—</td>
+<td>Strong pair F1; not exhaustive search</td>
+<td>Typed serialization, selective reranking</td>
+</tr>
+<tr>
+<td><a href="https://chu-data-lab.github.io/downloads/ZeroER-SIGMOD2020.pdf">ZeroER</a>, Renzhi Wu et al.</td>
+<td>2020, SIGMOD</td>
+<td>Five benchmarks; largest table 64,263</td>
+<td>Optional blocks</td>
+<td>Regularized mixture model</td>
+<td>No labels</td>
+<td>Transitivity constraints</td>
+<td>Distribution assumptions matter</td>
+<td>Probabilistic diagnostic baseline</td>
+</tr>
+<tr>
+<td><a href="https://proceedings.mlr.press/v119/guo20h/guo20h.pdf">ScaNN</a>, Ruiqi Guo et al.</td>
+<td>2020, ICML</td>
+<td>GloVe 1.2M; Amazon-670k</td>
+<td>Anisotropic vector quantization</td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+<td>Preserves important inner products</td>
+<td>Compression alternative</td>
+</tr>
+<tr>
+<td><a href="https://vldb.org/pvldb/vol14/p2459-thirumuruganathan.pdf">DeepBlocker design exploration</a>, Saravanan Thirumuruganathan et al.</td>
+<td>2021, PVLDB</td>
+<td>Structured/textual/dirty ER benchmarks</td>
+<td>Learned embeddings + nearest neighbors</td>
+<td>Multiple encoder designs</td>
+<td>Auxiliary/self-supervised objectives</td>
+<td>—</td>
+<td>Dense design choices matter</td>
+<td>Separate encoder and ANN quality</td>
+</tr>
+<tr>
+<td><a href="https://arxiv.org/pdf/2202.02098">Supervised Contrastive Learning for Product Matching</a>, Ralph Peeters, Christian Bizer</td>
+<td>2022, WWW Companion</td>
+<td>Product matching; ~3k–68k training pairs</td>
+<td>Given candidate pairs</td>
+<td>RoBERTa SupCon + pair head</td>
+<td>Source-aware in-batch</td>
+<td>Positive-label components</td>
+<td>Assumes internally deduplicated sources</td>
+<td>Multi-positive masks</td>
+</tr>
+<tr>
+<td><a href="https://doi.org/10.1145/3514221.3517872">HierGAT</a>, Dezhong Yao, Yuhong Gu, Gao Cong, Hai Jin, Xinqiao Lv</td>
+<td>2022, SIGMOD</td>
+<td>Magellan/WDC; DI2KG 29,788 cameras / 16,663 monitors</td>
+<td>Preblocked; collective top16</td>
+<td>Hierarchical graph attention</td>
+<td>Given candidate pairs</td>
+<td>Attribute hierarchy; HierGAT+ context</td>
+<td>Pairwise graph differs from collective graph</td>
+<td>Field and candidate context</td>
+</tr>
+<tr>
+<td><a href="https://arxiv.org/pdf/2207.04122">Sudowoodo</a>, Runhui Wang, Yuliang Li, Jin Wang</td>
+<td>2023, ICDE</td>
+<td>Standard ER; usual largest table ~64k</td>
+<td>Contrastive embeddings</td>
+<td>RoBERTa; optional pair head</td>
+<td>TF-IDF-clustered batches</td>
+<td>—</td>
+<td>Useful with few labels; modest evaluated scale</td>
+<td>Cheap lexical hard-negative curriculum</td>
+</tr>
+<tr>
+<td><a href="https://pages.cs.wisc.edu/~anhai/papers1/sparkly-vldb2023.pdf">Sparkly</a>, Derek Paulsen, Yash Govind, AnHai Doan</td>
+<td>2023, PVLDB</td>
+<td>WDC 26M; MusicBrainz 20M; business catalog 2.5M</td>
+<td>Lucene sparse top-K</td>
+<td>Downstream matcher separate</td>
+<td>—</td>
+<td>—</td>
+<td>Large-scale sparse baseline; field choice can fail</td>
+<td>Sparse-first indexing</td>
+</tr>
+<tr>
+<td><a href="https://arxiv.org/pdf/2404.14831">UniBlocker</a>, Tianshu Wang et al.</td>
+<td>2024, arXiv</td>
+<td>19 datasets / 9 domains; unlabeled scale to 1.8M vs 2.5M</td>
+<td>Universal dense + sparse hybrid</td>
+<td>Attribute-aware encoder</td>
+<td>In-batch; heuristic positives</td>
+<td>—</td>
+<td>Mostly ~90% completeness operating targets</td>
+<td>Field awareness; cautious rescue</td>
+</tr>
+<tr>
+<td><a href="https://2024.eswc-conferences.org/wp-content/uploads/2024/04/146640116.pdf">SC-Block</a>, Alexander Brinkmann, Roee Shraga, Christian Bizer</td>
+<td>2024, ESWC</td>
+<td>WDC-Block 100k vs 2M; 3,259 shops</td>
+<td>SupCon RoBERTa + FAISS</td>
+<td>Separate matcher</td>
+<td>Source-aware in-batch</td>
+<td>Label components</td>
+<td>Final paper: ~50% smaller sets, 1.5–4× pipeline speedup</td>
+<td>Train retrieval to shrink K</td>
+</tr>
+<tr>
+<td><a href="https://aclanthology.org/2024.naacl-long.483.pdf">Blocking reproducibility study</a>, Runhui Wang, Yongfeng Zhang</td>
+<td>2024, NAACL</td>
+<td>WDC subsets to 500k</td>
+<td>BM25, Sparkly, neural IR blockers</td>
+<td>Retrieval comparison</td>
+<td>Method-dependent</td>
+<td>—</td>
+<td>No universal neural winner</td>
+<td>Test strong IR baselines</td>
+</tr>
+<tr>
+<td><a href="https://www.openproceedings.org/2024/conf/edbt/paper-14.pdf">WDC Products</a>, Ralph Peeters, Reng Chiz Der, Christian Bizer</td>
+<td>2024, EDBT</td>
+<td>11,715 offers / 2,162 products; 27 variants</td>
+<td>Controlled benchmark</td>
+<td>Symbolic and neural matchers</td>
+<td>Explicit hard-case axis</td>
+<td>—</td>
+<td>Unseen entities alter model rankings</td>
+<td>Entity-disjoint stress tests</td>
+</tr>
+<tr>
+<td><a href="https://dmas.lab.mcgill.ca/fung/pub/LFX24kbs_preprint.pdf">AttendEM</a>, Jwen Fai Low, Benjamin C. M. Fung, Pulei Xiong</td>
+<td>2024, Knowledge-Based Systems</td>
+<td>13 ER-Magellan datasets</td>
+<td>Given pairs</td>
+<td>Transformer ensemble</td>
+<td>Existing negatives</td>
+<td>—</td>
+<td>Small gain versus original Ditto</td>
+<td>Matched-budget model comparisons</td>
+</tr>
+<tr>
+<td><a href="https://arxiv.org/pdf/2607.24688">Beyond Scale and Generation</a>, Zeyu Zhang et al.</td>
+<td>July 2026, arXiv preprint</td>
+<td>Nine datasets; 1,215 runs, &gt;850 H100 hours</td>
+<td>Given pairs</td>
+<td>Bi/cross/generative comparison</td>
+<td>Benchmark-dependent</td>
+<td>—</td>
+<td>Scale and initialization confound rankings</td>
+<td>Small controlled neural pilot</td>
+</tr>
+<tr>
+<td><a href="https://arxiv.org/pdf/2607.26298">ER in Practice</a>, Kaushik Pavani et al.</td>
+<td>July 2026, arXiv preprint</td>
+<td>Six benchmarks, 864–5M</td>
+<td>HNSW + identifiers</td>
+<td>Model tournament</td>
+<td>Benchmark-dependent</td>
+<td>Verified merges</td>
+<td>Verification can still reduce F1</td>
+<td>Graph veto ablation only</td>
+</tr>
+<tr>
+<td><a href="https://www.gov.uk/government/publications/joined-up-data-in-government-the-future-of-data-linking-methods/splink-mojs-open-source-library-for-probabilistic-record-linkage-at-scale">Splink, MoJ</a></td>
+<td>2020, official government engineering report</td>
+<td>Applications around 15M</td>
+<td>Configurable blocking</td>
+<td>Probabilistic comparisons</td>
+<td>EM, no required labels</td>
+<td>Optional clustering</td>
+<td>Scale depends on blocking/compute</td>
+<td>Frequency-adjusted evidence</td>
+</tr>
+<tr>
+<td><a href="https://docs.overturemaps.org/guides/places/">Overture Places</a></td>
+<td>2026, official living documentation</td>
+<td>~81M published places; match test size undisclosed</td>
+<td>Spatial + learned blocker</td>
+<td>XGBoost</td>
+<td>Training details undisclosed</td>
+<td>Transitive clustering</td>
+<td>Blocking bottleneck; confidence ≠ match probability</td>
+<td>Place-specific feature/context design</td>
+</tr>
+</tbody>
+</table>
+<p>Full-text PDFs are archived in <strong>research_papers/</strong> with source URLs and SHA-256 hashes in <strong>manifest.json</strong>. The Faiss library overview and the 2023 embedding analysis are supplemental PDFs beyond the matrix. HierGAT's author-uploaded full text was read, but its publisher PDF could not be downloaded through the available endpoints; that access limitation is recorded rather than claiming a local PDF exists.</p>
+<h2 id="3-deep-reading-what-transfers-and-what-does-not">3. Deep reading: what transfers and what does not</h2>
+<p>The source-specific summaries in this section are deliberately compact. Proposed modifications are research designs, not attributed paper algorithms.</p>
+<h3 id="31-transformer-and-graph-matchers">3.1 Transformer and graph matchers</h3>
+<p><strong>Ditto — actual details.</strong> Records use [COL] field [VAL] value inside a joint [CLS]/[SEP] pair. A Transformer representation feeds binary classification. Domain preprocessing includes typed spans, numerical rewriting and abbreviation dictionaries; TF-IDF summarization preserves informative tokens. MixDA blends original and augmented representations and needs two training forwards. Augmentations include span/attribute deletion or shuffling and pair swapping. Company labeling samples 10k pairs from each blocker with a similarity bias. There is no fixed negatives-per-positive curriculum or singleton-specific threshold algorithm. Its company pipeline begins with 10.65M candidates. <a href="https://arxiv.org/pdf/2004.00584">Full text, §§2–5</a></p>
+<p><strong>Proposed adaptation / complexity.</strong> Preserve exact identifiers outside the encoder, avoid augmenting away branch numbers, and use 128–192 pair tokens only after feature scoring. Dense attention contributes \(O(L^2)\) per pair; the whole model also has substantial projection/feed-forward work. Cross-encoding scales with the number of pairs, not unique records. Test serialization and the feature baseline before paying for additional forwards.</p>
+<p><strong>SupCon product matching — actual details.</strong> RoBERTa receives typed field serialization. An offer and a known positive form two views; different entity labels in the batch are negatives. The paper uses contrastive batch size 1024, temperature .07 and 200 epochs, then BCE on \((u,v,|u-v|,u\odot v)\). Freezing often helps. Source-aware sampling presumes deduplicated sources; training/validation positives are combined in its representation stage. <a href="https://arxiv.org/pdf/2202.02098">Full text</a></p>
+<p><strong>Proposed adaptation / limitation.</strong> Use training-fold labels only, mask every known sibling, and treat unknown neighbors as unlabeled. S2/S3 violate the source-deduplication premise. Restrict tuning to one warm-up and one refresh; the published training duration is not the budget default.</p>
+<p><strong>HierGAT — actual details.</strong> Token nodes aggregate into attributes and entities; the pair model uses BCE. Missing attributes use NAN. HierGAT+ adds query-candidate context/alignment; collective evaluation uses TF-IDF top16, query-disjoint splitting, ten epochs and whole-query batches. Iterative hard-negative refresh is not specified. Comparisons mainly use basic Ditto. <a href="https://doi.org/10.1145/3514221.3517872">Primary publication</a></p>
+<p><strong>Proposed adaptation / limitation.</strong> Import field comparison, common-token suppression and candidate-context features into the tree. Pairwise hierarchical attention does not justify global connected components. Candidate-context graph cost grows with the retained graph, potentially quadratically within a candidate set; avoid the full neural graph in the funded path.</p>
+<p><strong>ZeroER — actual details.</strong> An EM-fitted match/nonmatch Gaussian mixture uses attribute feature groups, shared correlations and adaptive regularization. Transitivity is constrained during learning/inference; no supervised negative mining is needed. The posterior decision threshold is .5. <a href="https://chu-data-lab.github.io/downloads/ZeroER-SIGMOD2020.pdf">Full text</a></p>
+<p><strong>Proposed adaptation / limitation.</strong> A small unlabeled comparator can expose feature/prior problems. Gaussian assumptions are questionable for our binary conflicts and heavy-tailed distances; use trees when complete labels exist. Neither .5 nor transitivity is transferable without entity-level validation.</p>
+<p><strong>AttendEM / WDC Products.</strong> AttendEM combines multiple text arrangements and aggregator outputs, adding inference work; its gain is only .21% against the original Ditto results, versus larger gains against replications. WDC Products varies hard cases, unseen entities and development size; its results show that seen-entity contrastive success need not generalize. These are matcher studies, not 10M retrieval tests. <a href="https://dmas.lab.mcgill.ca/fung/pub/LFX24kbs_preprint.pdf">AttendEM</a>, <a href="https://www.openproceedings.org/2024/conf/edbt/paper-14.pdf">WDC Products</a></p>
+<h3 id="32-blocking-algorithms">3.2 Blocking algorithms</h3>
+<p><strong>Sparkly — actual details.</strong> Manual field concatenation defaults to character trigrams; automatic configuration searches attribute/tokenizer sets using discriminativeness and pruning. Lucene performs sparse top-K probing, with query-side TF/IDF variants to address BM25 asymmetry. MusicBrainz 20M automatic recall is 95%@10, 97%@25, 98%@50. Business-catalog automatic recall is 79/89/94 at those K values, versus manual 99/100/100. WDC26M has no gold recall. <a href="https://pages.cs.wisc.edu/~anhai/papers1/sparkly-vldb2023.pdf">Full text</a></p>
+<p><strong>Proposed adaptation / limitation.</strong> Compare manual business-aware fields with learned field weights separately by country. Cost follows postings touched, not simply corpus size; common names can create expensive queries. Historical hardware costs are excluded from our SageMaker estimates.</p>
+<p><strong>UniBlocker — actual details.</strong> It concatenates values, adds averaged attribute-name embeddings to token embeddings and restarts positions per field. Mean pooling yields record vectors. Initial backbone: all-mpnet-base-v2, length 256. Augmented/dropout views and in-batch pairs above string similarity .85 become positives. Multi-positive Circle loss uses scale 80, margin .4; batch 128, 10k steps, AdamW 1e-5. Other batch pairs act as negatives; no ANN refresh is specified. <a href="https://arxiv.org/html/2404.14831v2">Full text</a></p>
+<p><strong>Proposed adaptation / limitation.</strong> Test compact and typed serialization first. Do not pseudo-label same-brand branches positive based on high string similarity; this could erase precisely the distinctions needed here. Universal pretraining and its English MPNet backbone are not the multilingual budget default.</p>
+<p><strong>SC-Block — actual details.</strong> Typed attributes feed RoBERTa-base; normalized mean-pooled vectors have dimension 768. Known-positive components supply labels. Source-aware pools and duplicated samples guarantee positives. Training uses batch 1024, temperature .07, 20 epochs, learning rate 5e-5; cosine neighbors come from FAISS. Negatives change through batching, not a fixed ANN-mined list. <a href="https://2024.eswc-conferences.org/wp-content/uploads/2024/04/146640116.pdf">Final ESWC full text</a></p>
+<p><strong>Proposed adaptation / limitation.</strong> Use multi-positive learning with fold-safe labels, but do not assume S2/S3 are deduplicated. Evaluate final compression retention, not just encoder loss. Build/query complexity depends on the chosen ANN index.</p>
+<p><strong>Sudowoodo — actual details.</strong> RoBERTa learning combines contrastive and Barlow Twins losses with text augmentation and embedding cutoff. Cached TF-IDF k-means clusters create difficult batches; cluster/record order is reshuffled each epoch. Defaults include 10k sampled records, three pretraining epochs, batch 64 and learning rate 5e-5; cluster counts 30/60/90/120 are searched. False-negative risk is investigated, not eliminated. <a href="https://arxiv.org/pdf/2207.04122">Full text</a></p>
+<p><strong>Proposed adaptation / limitation.</strong> Approximate lexical clusters with country/city/name buckets or cached sparse neighbors. This avoids clustering millions of records solely for mining. Keep easy negatives and mask known positives.</p>
+<p><strong>DeepBlocker / reproducibility study.</strong> DeepBlocker explores alternative aggregation, reconstruction and contrastive/triplet-style representations rather than one mandatory Transformer recipe. The later NAACL study compares IR backbones including Contriever, SPLADE and ColBERT at K=1…20 and up to 500k records; it caps large WDC positive clusters at 20. Its rankings and capped multiplicity do not establish unrestricted business recall. <a href="https://vldb.org/pvldb/vol14/p2459-thirumuruganathan.pdf">DeepBlocker</a>, <a href="https://aclanthology.org/2024.naacl-long.483.pdf">NAACL study</a></p>
+<h3 id="33-foundations-and-current-contradictory-evidence">3.3 Foundations and current contradictory evidence</h3>
+<p>Fellegi–Sunter ranks comparison patterns by match/nonmatch likelihood ratio; rare agreements can be stronger evidence than common agreements. Factorized implementations add assumptions about attribute dependence. Cohen et al. combine token weights with approximate token matches; this motivates a feature, not a universally optimal matcher. <a href="https://nhis.ipums.org/nhis/resources/Fellegi69.pdf">Fellegi–Sunter</a>, <a href="https://www.cs.utexas.edu/~ai-lab/pubs/ijcai03.pdf">string metrics</a></p>
+<p>GFM separates candidate selection at each output cardinality from choosing that cardinality, using joint label/count probabilities plus the probability of an empty truth. The original paper studies F1; Section 6 derives the analogous F0.5 expression. Estimating these distributions may be harder than fitting a robust threshold policy. <a href="https://www.weiweicheng.com/research/papers/cheng-nips11.pdf">GFM</a></p>
+<p>The 2026 model study uses more than 850 H100 hours and finds architecture/initialization and distribution shift matter alongside size. Its hardware numbers cannot be transferred to a T4. The 2026 self-serve preprint is preliminary: single-seed evaluation, no significance tests, and its own MusicBrainz table drops pair F1 from .540 before merging to .277 after verified merging. Use neither as proof of a cheap guaranteed neural/graph gain. <a href="https://arxiv.org/pdf/2607.24688">Model study</a>, <a href="https://arxiv.org/pdf/2607.26298">self-serve study</a></p>
+<h2 id="4-representation-retrieval-and-hard-negative-design">4. Representation, retrieval and hard-negative design</h2>
+<h3 id="41-normalization-and-serialization">4.1 Normalization and serialization</h3>
+<p><strong>Proposed canonical schema:</strong> record_id, source, country, raw_name, canonical_name, alternate_names, script-preserving tokens, transliteration variants, house_number, unit, street, locality, city, state, postal_code, latitude, longitude, coordinate_quality, phone_set, domain, URL_path, categories, field_missingness, parser/provenance/version fields.</p>
+<p>Normalize Unicode and whitespace without destroying originals. Produce accent-folded/transliterated retrieval variants in addition to native-script forms. Expand abbreviation dictionaries by field and locale; “st” in a street and a business name need different treatment. Keep legal suffix removal as an alternate feature, not irreversible normalization. US ZIP+4, French five-digit postcodes and Indian six-digit PINs remain strings; preserve leading zeros. House ranges, bis/ter suffixes, floors, units and sectors remain typed pieces. Parse rather than globally deleting punctuation.</p>
+<p>Use <a href="https://github.com/openvenues/libpostal">libpostal</a> as an optional address parser, validated separately for US/France/India; its reported held-out parsing accuracy is not a guarantee for these listings. Phone parsing uses a pinned <a href="https://github.com/google/libphonenumber">libphonenumber</a> version, country context, base numbers and separately stored extensions. Use a base-number retrieval channel when extensions differ or are missing. Validation does not prove ownership. Shared call-center numbers and chain domains are frequency-weighted features; branch-specific URL paths can be more useful than the domain.</p>
+<p>Compare these encodings on the same training split:</p>
+<table>
+<thead>
+<tr>
+<th>Representation</th>
+<th>Strength</th>
+<th>Risk / cost</th>
+<th>Proposed use</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Typed “[COL] name [VAL] …”</td>
+<td>Explicit schema, field missingness</td>
+<td>Extra tokens; positional sensitivity</td>
+<td>Cross-encoder baseline</td>
+</tr>
+<tr>
+<td>Compact “name: …; street: …; city: …”</td>
+<td>Short, tokenizer-friendly</td>
+<td>Less formal field boundaries</td>
+<td>Cheap encoder baseline</td>
+</tr>
+<tr>
+<td>Values only</td>
+<td>Compact, robust to renamed schema</td>
+<td>Field ambiguity</td>
+<td>Retrieval ablation</td>
+</tr>
+<tr>
+<td>Field-specific encoders with mean pooling</td>
+<td>Reuses distinct field signals</td>
+<td>More forward passes/storage</td>
+<td>Sample-only comparison</td>
+</tr>
+<tr>
+<td>Weighted field embeddings</td>
+<td>Controllable relevance</td>
+<td>Weight/normalization choices</td>
+<td>Combine normalized name/address vectors if already cached</td>
+</tr>
+<tr>
+<td>Learned attribute-aware encoder</td>
+<td>Can preserve semantics across schemas</td>
+<td>Training and integration cost</td>
+<td>Optional pilot, not required</td>
+</tr>
+</tbody>
+</table>
+<p>Field order can affect ordinary Transformers through positions and truncation. Use fixed order (name, alternate name, street/house/unit, locality/city/state/postal, category, contact), per-field token budgets, and a controlled order-shuffle ablation. Do not claim permutation invariance merely because shuffling was used during training.</p>
+<p><strong>Numeric disambiguation proposal.</strong> Retain typed tokens such as HOUSE_102, SECTOR_14 and name-number sequences; supply numeric equality/conflict indicators to the tree and optional reranker head. Number masking is an ablation only: it can erase the difference between Hotel21 and Hotel12. Digit embeddings or character modules need specific evidence to justify another model. Numeric sequence edit distance helps detect transposition but does not imply two identifiers are equal. Never round identifiers. Reliability-conditioned conflicts may penalize compression scores; use a hard veto only for validated, semantically impossible combinations.</p>
+<h3 id="42-independent-retrieval-channels">4.2 Independent retrieval channels</h3>
+<p>Country is the safe hard partition supplied by the task. Other fields are noisy and should generally supply alternative channels rather than mandatory conjunctions.</p>
+<table>
+<thead>
+<tr>
+<th>Channel</th>
+<th>Proposed query / initial quota</th>
+<th>Main value</th>
+<th>Failure mode / control</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Phone</td>
+<td>Exact normalized phone; retain rare-key hits</td>
+<td>Strong identity clue</td>
+<td>Shared/recycled number; bucket frequency and address checks</td>
+</tr>
+<tr>
+<td>Website</td>
+<td>Domain + branch path, or rare domain + name</td>
+<td>Contact evidence</td>
+<td>Chain domains are hubs</td>
+</tr>
+<tr>
+<td>Address anchor</td>
+<td>House + rare street token + locality/postal variant</td>
+<td>Branch discrimination</td>
+<td>Parser errors; fallback channels</td>
+</tr>
+<tr>
+<td>Postal / geo</td>
+<td>Postal plus name, or cell plus neighboring cells</td>
+<td>Local distractor control</td>
+<td>Never postcode/cell alone as identity evidence</td>
+</tr>
+<tr>
+<td>Rare name token</td>
+<td>Top 1–3 informative tokens, corroborated by locality/category</td>
+<td>Distinctive names</td>
+<td>Misspellings; query character alternatives</td>
+</tr>
+<tr>
+<td>Sparse name</td>
+<td>Character 3/4-gram and token BM25 top40</td>
+<td>Typos / aliases</td>
+<td>Frequent names; upper-bound pruning</td>
+</tr>
+<tr>
+<td>Sparse address</td>
+<td>Street/locality weighted retrieval top20–40</td>
+<td>Name changes</td>
+<td>Shared buildings</td>
+</tr>
+<tr>
+<td>Dense rescue</td>
+<td>Top20–40 per query after measured gate</td>
+<td>Cross-script/semantic aliases</td>
+<td>Same-brand branch collapse</td>
+</tr>
+<tr>
+<td>Optional phonetic</td>
+<td>Locale-specific phonetic key plus location</td>
+<td>Pronunciation variants</td>
+<td>No universal English phonetic rule for India</td>
+</tr>
+</tbody>
+</table>
+<p>Merge channel results by stable external record ID, retain channel masks and original ranks, and apply a cheap compressor. Start with average output 20–30, 95th percentile at most 40; allow a monitored overflow queue for credible high-multiplicity queries. Never collapse distinct external IDs in the final ground-truth count. Byte-identical records can share encoded content only if their full ID expansion is preserved.</p>
+<p>Protect strong rare anchors within the compressor, while learning whether their evidence is actually reliable. Score a bounded union of approximately 100–200 proposals using cheap token/contact/number features; expensive fuzzy features apply only after compression. This temporary cap is also a parameter to validate. Oversized postings require secondary keys or a fallback query, not arbitrary truncation silently presented as high recall.</p>
+<p><strong>Candidate recall accounting.</strong> Report pair-weighted recall, macro recall over non-singletons, all-matches coverage, and any-match coverage. Any-match coverage alone is insufficient. Measure every channel union, pre-compression set, final cap and overflow separately. For non-singletons, record the oracle ceiling \(1.25t_i/(0.25m_i+t_i)\); for true singletons the oracle score is1. Here \(t_i=|Y_i\cap C_i|\), even with a perfect downstream classifier.</p>
+<p>Sparse query cost is proportional to postings visited with top-K pruning; common-token queries can approach a scan. ANN also lacks a universal worst-case sublinear guarantee. Country sharding, selective terms and quotas make expected work manageable; benchmark tail latency and postings touched.</p>
+<h3 id="43-retriever-comparison-and-ann-configuration">4.3 Retriever comparison and ANN configuration</h3>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Transferable advantage</th>
+<th>Limitation at this operating point</th>
+<th>Decision</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>BM25 / inverted tokens</td>
+<td>Fast, inspectable rarity evidence</td>
+<td>Token mismatch, length/asymmetry effects</td>
+<td>Default channel</td>
+</tr>
+<tr>
+<td>Character TF-IDF</td>
+<td>Spelling noise and multilingual surface overlap</td>
+<td>Many postings; 4-grams brittle for short names</td>
+<td>Default, field-limited</td>
+</tr>
+<tr>
+<td>MinHash / LSH</td>
+<td>Cheap approximate Jaccard</td>
+<td>Short records and low lexical overlap; collision tuning</td>
+<td>Small ablation only</td>
+</tr>
+<tr>
+<td>Locality-sensitive/geographic keys</td>
+<td>Strong physical locality</td>
+<td>Coordinate errors and boundaries</td>
+<td>Neighbor cells + fallback</td>
+</tr>
+<tr>
+<td>Dense bi-encoder</td>
+<td>Alias and script generalization</td>
+<td>Semantic similarity is not identity</td>
+<td>Gated rescue</td>
+</tr>
+<tr>
+<td>FAISS Flat</td>
+<td>Exact vector-neighbor audit</td>
+<td>\(O(Nd)\) per query</td>
+<td>Small-query audit only</td>
+</tr>
+<tr>
+<td>HNSW</td>
+<td>Strong latency/recall trade-off</td>
+<td>FP32 vector/link RAM; build overhead</td>
+<td>RAM-rich country pilot</td>
+</tr>
+<tr>
+<td>IVF / IVFFlat / SQ8</td>
+<td>Tunable search, predictable sizes</td>
+<td>Coarse-cell misses</td>
+<td>CPU default dense index candidate</td>
+</tr>
+<tr>
+<td>IVF-PQ</td>
+<td>Small index</td>
+<td>Quantization can reorder close branches</td>
+<td>Retrieve100–200 then exact FP16 rescore</td>
+</tr>
+<tr>
+<td>ScaNN</td>
+<td>Score-aware quantization</td>
+<td>Integration and hardware tuning</td>
+<td>Substitute only after pilot win</td>
+</tr>
+<tr>
+<td>SPLADE / ColBERT</td>
+<td>Learned sparse / token interaction</td>
+<td>Training, postings/vector multiplication</td>
+<td>Optional larger-budget research</td>
+</tr>
+</tbody>
+</table>
+<p>FAISS is a library containing several index types; HNSW is a proximity index, not an entity matching graph. <a href="https://github.com/facebookresearch/faiss/wiki/Faiss-indexes">FAISS documentation</a>, <a href="https://proceedings.mlr.press/v119/guo20h/guo20h.pdf">ScaNN paper</a></p>
+<p><strong>Initial pilot parameters, not tuned values:</strong> normalize vectors for cosine/IP; per-country IVF nlist in {4096, 16384}, nprobe in {16,32,64,128}; train quantizers on a reproducible representative sample, normally 40–100 samples per centroid where affordable. Use PQ48×8 bits for d=384, or SQ8 if compression loss is material. HNSW M=16/32, efConstruction=100/200, efSearch=64/128/256. Measure exact-neighbor recall on stratified queries against the full country's vectors, and semantic gold recall separately. Border cells and missing geodata must have rescue routes.</p>
+<p>Do not blindly truncate 384-dimensional vectors to128/256: train/validate a projection or use an encoder explicitly supporting that dimension. Retain an FP16 vector artifact for rescore and audits.</p>
+<h3 id="44-proposed-negative-curriculum">4.4 Proposed negative curriculum</h3>
+<p>Counts below are proposed engineering defaults; the published recipes are in Section 3.</p>
+<table>
+<thead>
+<tr>
+<th>Strategy</th>
+<th>Generation</th>
+<th style="text-align: right;">Retained per positive</th>
+<th>Refresh</th>
+<th>Label-noise control</th>
+<th>Additional cost</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Easy same-country</td>
+<td>Uniform verified different entities</td>
+<td style="text-align: right;">2</td>
+<td>Batch reshuffle</td>
+<td>Complete entity labels</td>
+<td>Negligible sampling</td>
+</tr>
+<tr>
+<td>BM25 / character</td>
+<td>Actual retrieved near neighbors</td>
+<td style="text-align: right;">Up to4</td>
+<td>Cached warm-up list</td>
+<td>Exclude every known sibling</td>
+<td>One sparse retrieval pass</td>
+</tr>
+<tr>
+<td>Same city/postal</td>
+<td>Location-conditioned neighbors</td>
+<td style="text-align: right;">Up to2 within total quota</td>
+<td>Static</td>
+<td>Location does not establish nonmatch</td>
+<td>Indexed lookup</td>
+</tr>
+<tr>
+<td>Same name / chain</td>
+<td>Same normalized name, different verified branch</td>
+<td style="text-align: right;">Up to2</td>
+<td>Static + failures</td>
+<td>Require reviewed incompatible identity</td>
+<td>Small joins</td>
+</tr>
+<tr>
+<td>ANN</td>
+<td>Embedding neighbors</td>
+<td style="text-align: right;">Up to4 replacing weaker negatives</td>
+<td>Once after warm-up</td>
+<td>Unknown ≠ negative</td>
+<td>Sample queries, no epoch-wide refresh</td>
+</tr>
+<tr>
+<td>Model false positives</td>
+<td>Highest-scoring verified errors</td>
+<td style="text-align: right;">Up to4 +2 diverse</td>
+<td>Once or drift-triggered</td>
+<td>Train-fold errors only</td>
+<td>Cached feature scoring</td>
+</tr>
+<tr>
+<td>Singleton hard cases</td>
+<td>Top retrieved candidates of verified singletons</td>
+<td style="text-align: right;">Up to8 per singleton</td>
+<td>Once</td>
+<td>Singleton verification required</td>
+<td>High expected value per label</td>
+</tr>
+</tbody>
+</table>
+<p>Cap total negatives per anchor (e.g.12), rather than multiplying by every positive when a business has many listings. Keep all known positives; sample very large positive groups with explicit coverage accounting. Contrastive batches use only same-country negative comparisons and multi-positive masks. Cross-country negatives are easy, unavailable at inference, and waste learning capacity.</p>
+<p>Mining stores IDs, scores, channel provenance and label status, not copied strings. Use 10k–100k labeled anchors for a first curriculum, write sharded Parquet, and refresh only the sampled pool. Missing-positive labels are the principal risk. Soft heuristic positives based on name overlap are especially unsafe for chains. Calibration and thresholds later use representative complete candidate groups, not this sampled class balance.</p>
+<h2 id="5-feature-dictionary-and-model-comparison">5. Feature dictionary and model comparison</h2>
+<h3 id="51-feature-conventions">5.1 Feature conventions</h3>
+<p>All proposed features below are computed from canonical fields and cached token statistics. Define \(E(a,b)=1[a=b]\) only when both fields are present and valid; otherwise NA. Missing does not equal missing. For every field pair retain the categorical availability state {both, left-only, right-only, neither}; trees receive numeric NA plus these states. Missing retrieval-channel scores are NA with a retrieved-channel flag; missing reciprocal ranks are zero. Country/source are categorical context, never raw entity IDs.</p>
+<p>Let \(L(a,b)\) be Levenshtein distance; \(DL\) Damerau–Levenshtein distance with the implementation variant pinned; \(l_a\) string length; \(A,B\) token sets; \(W(A)=\sum_{t\in A}w_t\). Clip IDF at a training-selected percentile so corrupted singleton tokens cannot dominate. Compute IDF by field/country over the deployment index; this is label-free transductive information, declared in evaluation.</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: right;">#</th>
+<th>Feature</th>
+<th>Formula / definition</th>
+<th>Field</th>
+<th>Range</th>
+<th>Missing handling</th>
+<th>Expected signal</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: right;">1</td>
+<td>Levenshtein similarity</td>
+<td>\(1-L/\max(l_a,l_b)\)</td>
+<td>Name</td>
+<td>[0,1]</td>
+<td>NA if either absent</td>
+<td>Spelling agreement</td>
+</tr>
+<tr>
+<td style="text-align: right;">2</td>
+<td>Damerau similarity</td>
+<td>\(1-DL/\max(l_a,l_b)\)</td>
+<td>Name</td>
+<td>[0,1]</td>
+<td>NA</td>
+<td>Transpositions</td>
+</tr>
+<tr>
+<td style="text-align: right;">3</td>
+<td>Jaro</td>
+<td>Standard matched-character/transposition score</td>
+<td>Name</td>
+<td>[0,1]</td>
+<td>NA</td>
+<td>Short-name similarity</td>
+</tr>
+<tr>
+<td style="text-align: right;">4</td>
+<td>Jaro–Winkler</td>
+<td>\(J+\min(prefix,4)\cdot.1(1-J)\), gated at J&gt;.7</td>
+<td>Name</td>
+<td>[0,1]</td>
+<td>NA</td>
+<td>Prefix-supported similarity</td>
+</tr>
+<tr>
+<td style="text-align: right;">5</td>
+<td>Character 3-gram cosine</td>
+<td>\(v_3(a)^\top v_3(b)/(\|v_3(a)\|\|v_3(b)\|)\)</td>
+<td>Name</td>
+<td>[0,1]</td>
+<td>NA for zero vector</td>
+<td>Robust local overlap</td>
+</tr>
+<tr>
+<td style="text-align: right;">6</td>
+<td>Character 4-gram cosine</td>
+<td>Same with 4-grams</td>
+<td>Name</td>
+<td>[0,1]</td>
+<td>NA for zero vector</td>
+<td>More specific overlap</td>
+</tr>
+<tr>
+<td style="text-align: right;">7</td>
+<td>Token Jaccard</td>
+<td>\(\vert A\cap B\vert /\vert A\cup B\vert \)</td>
+<td>Name</td>
+<td>[0,1]</td>
+<td>NA if absent/empty</td>
+<td>Token agreement</td>
+</tr>
+<tr>
+<td style="text-align: right;">8</td>
+<td>Weighted Jaccard</td>
+<td>\(W(A\cap B)/W(A\cup B)\)</td>
+<td>Name</td>
+<td>[0,1]</td>
+<td>NA</td>
+<td>Rare-token agreement</td>
+</tr>
+<tr>
+<td style="text-align: right;">9</td>
+<td>Symmetric SoftTF-IDF</td>
+<td>Average of two directed fuzzy TF-IDF scores</td>
+<td>Name</td>
+<td>≥0; implementation-dependent upper bound</td>
+<td>NA</td>
+<td>Fuzzy rare tokens</td>
+</tr>
+<tr>
+<td style="text-align: right;">10</td>
+<td>Token containment</td>
+<td>\(\vert A\cap B\vert /\min(\vert A\vert ,\vert B\vert )\)</td>
+<td>Name</td>
+<td>[0,1]</td>
+<td>NA</td>
+<td>Short/long aliases</td>
+</tr>
+<tr>
+<td style="text-align: right;">11</td>
+<td>Acronym equality</td>
+<td>Compare acronym of longer name with short form</td>
+<td>Name</td>
+<td>{0,1}</td>
+<td>NA when inapplicable</td>
+<td>Initialisms</td>
+</tr>
+<tr>
+<td style="text-align: right;">12</td>
+<td>Phonetic equality</td>
+<td>Locale-specific code equality</td>
+<td>Name</td>
+<td>{0,1}</td>
+<td>NA for unsupported locale</td>
+<td>Pronunciation variants</td>
+</tr>
+<tr>
+<td style="text-align: right;">13</td>
+<td>Length ratio</td>
+<td>\(\min(l_a,l_b)/\max(l_a,l_b)\)</td>
+<td>Name</td>
+<td>[0,1]</td>
+<td>NA</td>
+<td>Abbreviation / missing pieces</td>
+</tr>
+<tr>
+<td style="text-align: right;">14</td>
+<td>Prefix ratio</td>
+<td>Common-prefix length / min length</td>
+<td>Name</td>
+<td>[0,1]</td>
+<td>NA</td>
+<td>Shared start; chain warning</td>
+</tr>
+<tr>
+<td style="text-align: right;">15</td>
+<td>Alternate-name best overlap</td>
+<td>Max weighted Jaccard over valid alias pairs</td>
+<td>Names</td>
+<td>[0,1]</td>
+<td>NA if no comparable names</td>
+<td>Known aliases</td>
+</tr>
+<tr>
+<td style="text-align: right;">16</td>
+<td>Street similarity</td>
+<td>Character cosine or normalized edit score</td>
+<td>Street</td>
+<td>[0,1]</td>
+<td>NA</td>
+<td>Same thoroughfare</td>
+</tr>
+<tr>
+<td style="text-align: right;">17</td>
+<td>House equality</td>
+<td>\(E(h_a,h_b)\), including suffix/range normalization</td>
+<td>House</td>
+<td>{0,1}</td>
+<td>NA</td>
+<td>Same premises</td>
+</tr>
+<tr>
+<td style="text-align: right;">18</td>
+<td>House difference</td>
+<td>\(\min(\vert int(h_a)-int(h_b)\vert ,10000)\)</td>
+<td>House</td>
+<td>[0,10000]</td>
+<td>NA for non-simple numbers</td>
+<td>Numeric distance, not identity</td>
+</tr>
+<tr>
+<td style="text-align: right;">19</td>
+<td>Address token Jaccard</td>
+<td>Token set overlap</td>
+<td>Address</td>
+<td>[0,1]</td>
+<td>NA</td>
+<td>General address agreement</td>
+</tr>
+<tr>
+<td style="text-align: right;">20</td>
+<td>Address weighted overlap</td>
+<td>Weighted Jaccard</td>
+<td>Address</td>
+<td>[0,1]</td>
+<td>NA</td>
+<td>Distinctive street/locality</td>
+</tr>
+<tr>
+<td style="text-align: right;">21</td>
+<td>Rare address overlap</td>
+<td>Sum clipped IDF of shared rare tokens</td>
+<td>Address</td>
+<td>≥0</td>
+<td>NA if absent</td>
+<td>Strong location anchors</td>
+</tr>
+<tr>
+<td style="text-align: right;">22</td>
+<td>Locality similarity</td>
+<td>Character 3-gram cosine</td>
+<td>Locality</td>
+<td>[0,1]</td>
+<td>NA</td>
+<td>Neighborhood agreement</td>
+</tr>
+<tr>
+<td style="text-align: right;">23</td>
+<td>City equality</td>
+<td>\(E(city_a,city_b)\) after alias map</td>
+<td>City</td>
+<td>{0,1}</td>
+<td>NA</td>
+<td>Administrative consistency</td>
+</tr>
+<tr>
+<td style="text-align: right;">24</td>
+<td>State equality</td>
+<td>Canonical state/region equality</td>
+<td>State</td>
+<td>{0,1}</td>
+<td>NA</td>
+<td>Administrative consistency</td>
+</tr>
+<tr>
+<td style="text-align: right;">25</td>
+<td>Postal equality</td>
+<td>Exact canonical string equality</td>
+<td>Postal</td>
+<td>{0,1}</td>
+<td>NA</td>
+<td>Locality evidence</td>
+</tr>
+<tr>
+<td style="text-align: right;">26</td>
+<td>Postal prefix equality</td>
+<td>Country-specific meaningful prefix</td>
+<td>Postal</td>
+<td>{0,1}</td>
+<td>NA</td>
+<td>Coarser evidence</td>
+</tr>
+<tr>
+<td style="text-align: right;">27</td>
+<td>Unit equality</td>
+<td>Canonical suite/floor/unit agreement</td>
+<td>Unit</td>
+<td>{0,1}</td>
+<td>NA</td>
+<td>Co-located businesses</td>
+</tr>
+<tr>
+<td style="text-align: right;">28</td>
+<td>House conflict</td>
+<td>Both reliable and unequal normalized house IDs</td>
+<td>House</td>
+<td>{0,1}</td>
+<td>NA if unavailable; separate reliability</td>
+<td>Different branches</td>
+</tr>
+<tr>
+<td style="text-align: right;">29</td>
+<td>Postal conflict</td>
+<td>Both reliable and unequal postcodes</td>
+<td>Postal</td>
+<td>{0,1}</td>
+<td>NA</td>
+<td>Location inconsistency</td>
+</tr>
+<tr>
+<td style="text-align: right;">30</td>
+<td>Phone conflict</td>
+<td>Both valid phone sets nonempty and disjoint</td>
+<td>Phone</td>
+<td>{0,1}</td>
+<td>NA</td>
+<td>Contact disagreement</td>
+</tr>
+<tr>
+<td style="text-align: right;">31</td>
+<td>Name-number conflict</td>
+<td>Distinct typed numeric/alphanumeric sequences</td>
+<td>Name</td>
+<td>{0,1}</td>
+<td>NA if no comparison</td>
+<td>Hotel21 vs Hotel12</td>
+</tr>
+<tr>
+<td style="text-align: right;">32</td>
+<td>Sector/unit numeric conflict</td>
+<td>Reliable typed subaddress mismatch</td>
+<td>Address</td>
+<td>{0,1}</td>
+<td>NA</td>
+<td>Sector14 vs Sector41</td>
+</tr>
+<tr>
+<td style="text-align: right;">33</td>
+<td>Numeric-sequence similarity</td>
+<td>Normalized edit score on typed sequence</td>
+<td>Name/address</td>
+<td>[0,1]</td>
+<td>NA</td>
+<td>Numeric typo vs identity</td>
+</tr>
+<tr>
+<td style="text-align: right;">34</td>
+<td>Weighted conflict score</td>
+<td>\(\sum_f\lambda_f r_f I_f\)</td>
+<td>Conflicts</td>
+<td>≥0</td>
+<td>Zero unavailable terms plus missing masks</td>
+<td>Aggregate contradiction</td>
+</tr>
+<tr>
+<td style="text-align: right;">35</td>
+<td>Phone overlap</td>
+<td>Nonempty normalized set intersection</td>
+<td>Phone</td>
+<td>{0,1}</td>
+<td>NA</td>
+<td>Shared contact</td>
+</tr>
+<tr>
+<td style="text-align: right;">36</td>
+<td>Phone rarity</td>
+<td>Max IDF among shared valid phones</td>
+<td>Phone</td>
+<td>≥0</td>
+<td>NA if absent; 0 if no shared phone</td>
+<td>Downweight call centers</td>
+</tr>
+<tr>
+<td style="text-align: right;">37</td>
+<td>Domain equality</td>
+<td>Exact registrable domain equality</td>
+<td>URL</td>
+<td>{0,1}</td>
+<td>NA</td>
+<td>Shared site</td>
+</tr>
+<tr>
+<td style="text-align: right;">38</td>
+<td>Domain rarity</td>
+<td>IDF of shared domain; 0 if different</td>
+<td>URL</td>
+<td>≥0</td>
+<td>NA if absent</td>
+<td>Downweight chain domains</td>
+</tr>
+<tr>
+<td style="text-align: right;">39</td>
+<td>Branch-path similarity</td>
+<td>Token overlap on meaningful URL path</td>
+<td>URL path</td>
+<td>[0,1]</td>
+<td>NA if absent</td>
+<td>Branch/store identity</td>
+</tr>
+<tr>
+<td style="text-align: right;">40</td>
+<td>Category compatibility</td>
+<td>Frozen taxonomy similarity or equality</td>
+<td>Category</td>
+<td>[0,1]</td>
+<td>NA</td>
+<td>Supporting business type</td>
+</tr>
+<tr>
+<td style="text-align: right;">41</td>
+<td>Haversine distance</td>
+<td>Great-circle distance</td>
+<td>Coordinates</td>
+<td>[0,~20015] km</td>
+<td>NA if invalid</td>
+<td>Location separation</td>
+</tr>
+<tr>
+<td style="text-align: right;">42</td>
+<td>Log distance</td>
+<td>\(\log(1+d_{km})\)</td>
+<td>Coordinates</td>
+<td>≥0</td>
+<td>NA</td>
+<td>Stable distance scale</td>
+</tr>
+<tr>
+<td style="text-align: right;">43</td>
+<td>Distance bucket</td>
+<td>0–25m,25–100m,100–500m,.5–2km,&gt;2km</td>
+<td>Coordinates</td>
+<td>Categorical</td>
+<td>Missing category</td>
+<td>Nonlinear geographic effects</td>
+</tr>
+<tr>
+<td style="text-align: right;">44</td>
+<td>Same geo cell</td>
+<td>Equality at fixed documented resolution</td>
+<td>Coordinates</td>
+<td>{0,1}</td>
+<td>NA</td>
+<td>Coarse local support</td>
+</tr>
+<tr>
+<td style="text-align: right;">45</td>
+<td>Same admin region</td>
+<td>Trusted region-ID equality</td>
+<td>Region</td>
+<td>{0,1}</td>
+<td>NA</td>
+<td>Geographic context</td>
+</tr>
+<tr>
+<td style="text-align: right;">46</td>
+<td>Coordinate quality</td>
+<td>Min documented quality; centroid flag categorical</td>
+<td>Coordinates</td>
+<td>[0,1] / category</td>
+<td>Unknown category</td>
+<td>Reliability of distance</td>
+</tr>
+<tr>
+<td style="text-align: right;">47</td>
+<td>Name BM25</td>
+<td>Field-specific indexed query score</td>
+<td>Retrieval</td>
+<td>≥0</td>
+<td>NA when not retrieved</td>
+<td>Sparse evidence</td>
+</tr>
+<tr>
+<td style="text-align: right;">48</td>
+<td>Address BM25</td>
+<td>Address channel score</td>
+<td>Retrieval</td>
+<td>≥0</td>
+<td>NA</td>
+<td>Address evidence</td>
+</tr>
+<tr>
+<td style="text-align: right;">49</td>
+<td>Dense similarity</td>
+<td>Dot product of L2-normalized vectors</td>
+<td>Retrieval</td>
+<td>[-1,1]</td>
+<td>NA when unavailable</td>
+<td>Learned similarity</td>
+</tr>
+<tr>
+<td style="text-align: right;">50</td>
+<td>Sparse reciprocal rank</td>
+<td>\(1/r_s\)</td>
+<td>Retrieval</td>
+<td>[0,1]</td>
+<td>0 when absent</td>
+<td>Query-relative position</td>
+</tr>
+<tr>
+<td style="text-align: right;">51</td>
+<td>Dense reciprocal rank</td>
+<td>\(1/r_d\)</td>
+<td>Retrieval</td>
+<td>[0,1]</td>
+<td>0 when absent</td>
+<td>Query-relative position</td>
+</tr>
+<tr>
+<td style="text-align: right;">52</td>
+<td>Channel agreement</td>
+<td>Number of independently defined channels</td>
+<td>Retrieval</td>
+<td>[0,R]</td>
+<td>0</td>
+<td>Corroboration, not independence proof</td>
+</tr>
+<tr>
+<td style="text-align: right;">53</td>
+<td>RRF</td>
+<td>\(\sum_r1/(k_0+rank_r)\)</td>
+<td>Retrieval</td>
+<td>≥0</td>
+<td>0 absent contribution</td>
+<td>Robust fusion</td>
+</tr>
+<tr>
+<td style="text-align: right;">54</td>
+<td>Top score</td>
+<td>Max first-pass pair score in candidate set</td>
+<td>Context</td>
+<td>[0,1]</td>
+<td>0 for no candidates + empty flag</td>
+<td>Plausibility of any match</td>
+</tr>
+<tr>
+<td style="text-align: right;">55</td>
+<td>Candidate rank</td>
+<td>Rank by first-pass score with deterministic ties</td>
+<td>Context</td>
+<td>[1,K]</td>
+<td>No pair row for empty set</td>
+<td>Competition</td>
+</tr>
+<tr>
+<td style="text-align: right;">56</td>
+<td>Score minus best</td>
+<td>\(s_{ij}-s_{i1}\)</td>
+<td>Context</td>
+<td>[-1,0]</td>
+<td>No pair for empty set</td>
+<td>Relative plausibility</td>
+</tr>
+<tr>
+<td style="text-align: right;">57</td>
+<td>Top-two gap</td>
+<td>\(s_{i1}-s_{i2}\)</td>
+<td>Context</td>
+<td>[0,1]</td>
+<td>NA for K&lt;2</td>
+<td>Ambiguity, not uniqueness veto</td>
+</tr>
+<tr>
+<td style="text-align: right;">58</td>
+<td>Local score z</td>
+<td>\((s_{ij}-\mu_i)/(\sigma_i+\epsilon)\)</td>
+<td>Context</td>
+<td>Real, clipped [-10,10]</td>
+<td>0 if constant; flag K&lt;2</td>
+<td>Local outlier support</td>
+</tr>
+<tr>
+<td style="text-align: right;">59</td>
+<td>Candidate count</td>
+<td>Count before/after compression as two columns</td>
+<td>Context</td>
+<td>Nonnegative integer</td>
+<td>0</td>
+<td>Density / truncation</td>
+</tr>
+<tr>
+<td style="text-align: right;">60</td>
+<td>High-score count</td>
+<td>\(\sum_j1[s_{ij}&gt;u]\), fixed OOF-selected u</td>
+<td>Context</td>
+<td>[0,K]</td>
+<td>0</td>
+<td>Multiplicity/ambiguity</td>
+</tr>
+<tr>
+<td style="text-align: right;">61</td>
+<td>Name frequency</td>
+<td>log1p country and local name DF as two columns</td>
+<td>Context</td>
+<td>≥0</td>
+<td>NA for absent name</td>
+<td>Chain/common-name risk</td>
+</tr>
+<tr>
+<td style="text-align: right;">62</td>
+<td>Incompatible-rival gap</td>
+<td>Score minus best reliably incompatible branch</td>
+<td>Context</td>
+<td>[-1,1]</td>
+<td>NA without rival</td>
+<td>Relevant competition</td>
+</tr>
+<tr>
+<td style="text-align: right;">63</td>
+<td>Top-two score ratio</td>
+<td>\(s_1/(s_2+\epsilon)\), clipped at100</td>
+<td>Context</td>
+<td>[0,100]</td>
+<td>NA for K&lt;2</td>
+<td>Secondary margin ablation</td>
+</tr>
+<tr>
+<td style="text-align: right;">64</td>
+<td>Field availability states</td>
+<td>{both,left,right,neither} per schema field</td>
+<td>Missingness</td>
+<td>Categorical</td>
+<td>Explicit neither</td>
+<td>Avoid missing=agreement</td>
+</tr>
+<tr>
+<td style="text-align: right;">65</td>
+<td>Provenance context</td>
+<td>Country, source pair, parse quality, index/model versions in audit</td>
+<td>Context</td>
+<td>Categorical</td>
+<td>Unknown category</td>
+<td>Country/source interactions</td>
+</tr>
+<tr>
+<td style="text-align: right;">66</td>
+<td>Overflow / no-candidate flag</td>
+<td>Cap reached, overflow used, K=0</td>
+<td>Context</td>
+<td>{0,1} each</td>
+<td>Always observed</td>
+<td>Retrieval failure awareness</td>
+</tr>
+</tbody>
+</table>
+<p>This is a superset dictionary; use feature-family ablations to remove expensive redundant metrics. Jaro, Jaro–Winkler and edit metrics are correlated. SoftTF-IDF or token bipartite alignment can be reserved for ambiguous compressed pairs. Compute first-pass score features out-of-fold for any second-pass/context model; otherwise the context learns training overconfidence.</p>
+<h3 id="52-three-model-families">5.2 Three model families</h3>
+<table>
+<thead>
+<tr>
+<th>Family</th>
+<th>Proposed training</th>
+<th>Calibration / missing fields</th>
+<th>Inference and hardware</th>
+<th>Research decision</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>LightGBM</td>
+<td>Histogram tree classifier, limited depth/leaves, early stopping</td>
+<td>Numeric NA plus explicit availability</td>
+<td>CPU first; bounded trees, compiled prediction</td>
+<td>Primary baseline</td>
+</tr>
+<tr>
+<td>XGBoost</td>
+<td>Histogram objective, same split/features/search budget</td>
+<td>Learned missing direction; external-memory option if needed</td>
+<td>CPU first; GPU only on profiled large dense training matrix</td>
+<td>Direct competitor</td>
+</tr>
+<tr>
+<td>CatBoost</td>
+<td>Shallow/symmetric-tree candidate with source/country categories</td>
+<td>Numeric missing handling; encode categorical missing explicitly</td>
+<td>CPU comparison; costly categorical statistics can matter</td>
+<td>Keep if OOF gain per dollar wins</td>
+</tr>
+<tr>
+<td>Bi-encoder</td>
+<td>Frozen multilingual model, then small contrastive pilot</td>
+<td>Missing-field serialization, multi-positive loss</td>
+<td>Offline GPU encoding; CPU ANN querying</td>
+<td>Retrieval/rescoring signal</td>
+</tr>
+<tr>
+<td>Cross-encoder</td>
+<td>Short pair serialization, BCE; optional numeric side head</td>
+<td>Field preservation and supervised calibration</td>
+<td>GPU on selected difficult pairs</td>
+<td>Conditional increment</td>
+</tr>
+</tbody>
+</table>
+<p>The official <a href="https://github.com/lightgbm-org/LightGBM/blob/main/docs/GPU-Performance.rst">LightGBM GPU guide</a> says small datasets can be inefficient on GPU because of transfer overhead. <a href="https://xgboost.readthedocs.io/en/stable/tutorials/external_memory.html">XGBoost external-memory documentation</a> makes I/O bandwidth a central constraint; out-of-core is not free speed. <a href="https://catboost.ai/docs/en/concepts/algorithm-missing-values-processing">CatBoost documentation</a> distinguishes numeric from categorical missing-value processing.</p>
+<p><strong>Proposed tree budget.</strong> Compare one or two configurations per library on the same representative feature sample, then devote the five-fold run to the winner. Start 300–800 trees, 15–63 leaves or analogous depth, strong minimum-leaf support and early stopping; these are search bounds, not fitted settings. Weight references so high-multiplicity anchors do not dominate training. Include actual retrieved negatives and singleton groups. Class weights can aid optimization but distort raw probabilities; fit calibration on unsampled representative groups.</p>
+<p><strong>Contrastive objective.</strong> With \(P(i)\) all known positives in the training batch and \(D(i)\) admissible same-country examples excluding self and unknowns:
+\[
+L_i=-\frac1{|P(i)|}\sum_{p\in P(i)}
+\log\frac{\exp(z_i^\top z_p/\tau)}
+{\sum_{a\in D(i)}\exp(z_i^\top z_a/\tau)}.
+\]
+Mask known positives from any “negative” designation, while retaining them in the appropriate multi-positive denominator. Gradient accumulation does not enlarge the current microbatch's in-batch negative pool. A queue/cache requires stale-embedding and false-negative controls.</p>
+<p><strong>Frozen encoder comparison, verified dimensions / approximate parameters.</strong> Throughput below is only a sensitivity scenario on one A10G at a 128-token cap, including no guaranteed benchmark. Encoding counts include 11.73M evaluation candidates plus references. Model metadata: <a href="https://huggingface.co/sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2">MiniLM</a>, <a href="https://huggingface.co/intfloat/multilingual-e5-small">mE5 small</a>, <a href="https://huggingface.co/intfloat/multilingual-e5-base">mE5 base</a>, <a href="https://huggingface.co/BAAI/bge-m3">BGE-M3</a>.</p>
+<table>
+<thead>
+<tr>
+<th>Backbone</th>
+<th style="text-align: right;">Parameters</th>
+<th style="text-align: right;">Dimension</th>
+<th style="text-align: right;">Assumed records/s range</th>
+<th style="text-align: right;">GPU hours for11.73M</th>
+<th style="text-align: right;">g5.xlarge encoding dollars</th>
+<th>FP16 weights / 10M vectors</th>
+<th>Expected sparse increment</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>multilingual MiniLM L12</td>
+<td style="text-align: right;">117.65M</td>
+<td style="text-align: right;">384</td>
+<td style="text-align: right;">500–1500</td>
+<td style="text-align: right;">2.17–6.52</td>
+<td style="text-align: right;">$3.06–9.18</td>
+<td>~.235GB / 7.68GB</td>
+<td>Unknown; paraphrase baseline</td>
+</tr>
+<tr>
+<td>multilingual E5-small</td>
+<td style="text-align: right;">117.65M</td>
+<td style="text-align: right;">384</td>
+<td style="text-align: right;">500–1500</td>
+<td style="text-align: right;">2.17–6.52</td>
+<td style="text-align: right;">$3.06–9.18</td>
+<td>~.235GB / 7.68GB</td>
+<td>Unknown; preferred retrieval hypothesis</td>
+</tr>
+<tr>
+<td>multilingual E5-base</td>
+<td style="text-align: right;">278.04M</td>
+<td style="text-align: right;">768</td>
+<td style="text-align: right;">200–600</td>
+<td style="text-align: right;">5.43–16.29</td>
+<td style="text-align: right;">$7.65–22.94</td>
+<td>~.556GB / 15.36GB</td>
+<td>Unknown; require small-model miss recovery</td>
+</tr>
+<tr>
+<td>BGE-M3</td>
+<td style="text-align: right;">~568M</td>
+<td style="text-align: right;">1024</td>
+<td style="text-align: right;">60–200</td>
+<td style="text-align: right;">16.29–54.31</td>
+<td style="text-align: right;">$22.94–76.46</td>
+<td>~1.136GB / 20.48GB</td>
+<td>Unknown; long context has limited value for short listings</td>
+</tr>
+</tbody>
+</table>
+<p>Weights alone understate VRAM: activations, optimizer states and batches dominate many runs. Start inference batches128/256 for small encoders,64/128 for base,16/32 for BGE and adjust to measured memory. Fine-tuning microbatches16–32 with mixed precision and accumulation are more conservative. A 24GB A10G permits more batch headroom than a16GB T4; throughput determines economics.</p>
+<p>E5 recommends query prefixes on both sides for symmetric tasks; compare that with asymmetric query/passage prompts if needed. General retrieval training is a useful initialization, but business-identity quality remains unmeasured. <a href="https://huggingface.co/intfloat/multilingual-e5-small/raw/main/README.md">E5 author instructions</a></p>
+<p><strong>Five-fold budget safeguard.</strong> The headline five-fold protocol can share a label-free frozen encoder/index. If a task-fine-tuned encoder is adopted, each outer fold needs training without its labels and a corresponding index/candidate evaluation. Reusing an encoder trained on held-out identities is leakage. The funded small fine-tuning pilot is exploratory; promote it only if the validation allowance covers the extra fold work or use frozen dense retrieval in the official final comparison.</p>
+<h3 id="53-cross-encoder-scale-calculation">5.3 Cross-encoder scale calculation</h3>
+<p>The full top5 cascade requires
+\[
+1.73M\times5=8.65M\ \text{pairs};
+\quad \lceil8{,}650{,}000/256\rceil=33{,}790\ \text{batches}.
+\]
+At batch128 there are67,579 batches. Top10 doubles pair count and approximately doubles compute. All40 would require69.2M pairs.</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: right;">End-to-end throughput if measured</th>
+<th style="text-align: right;">Hours for8.65M</th>
+<th style="text-align: right;">g5.xlarge cost at$1.408/h</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: right;">100 pairs/s</td>
+<td style="text-align: right;">24.03</td>
+<td style="text-align: right;">$33.83</td>
+</tr>
+<tr>
+<td style="text-align: right;">200 pairs/s</td>
+<td style="text-align: right;">12.01</td>
+<td style="text-align: right;">$16.92</td>
+</tr>
+<tr>
+<td style="text-align: right;">500 pairs/s</td>
+<td style="text-align: right;">4.81</td>
+<td style="text-align: right;">$6.77</td>
+</tr>
+<tr>
+<td style="text-align: right;">1000 pairs/s</td>
+<td style="text-align: right;">2.40</td>
+<td style="text-align: right;">$3.38</td>
+</tr>
+</tbody>
+</table>
+<p>These are inference arithmetic, excluding training/startup/calibration. Throughput depends on backbone, sequence length, padding, CPU tokenization and batch size. At200 pairs/s, reranking500k pairs costs .694GPU hours or about$0.98. The proposed4h neural allocation covers pilot/adaptation plus a capped difficult subset, not an assumed blanket top5 pass.</p>
+<p>Select hard cases using feature-model uncertainty, unreliable contacts, chain ambiguity and disagreement between sparse/dense evidence. Retain accepted high-confidence tree matches outside this subset; calibration must account for whether a pair was selected for reranking. A reranker must not force the whole prediction set to contain only its top5–10 pairs when more real matches exist.</p>
+<h2 id="6-mathematical-formulation-calibration-and-decisions">6. Mathematical formulation, calibration and decisions</h2>
+<h3 id="61-similarities-and-retrieval-scores">6.1 Similarities and retrieval scores</h3>
+<p>The following formulas define proposed features precisely.</p>
+<p>Country/field-specific IDF and weighted Jaccard:
+\[
+w_t=\min\left(w_{\max},\log\frac{N_c+1}{df_c(t)+1}\right),\qquad
+J_w(A,B)=\frac{\sum_{t\in A\cap B}w_t}{\sum_{t\in A\cup B}w_t}.
+\]
+If the denominator is zero, return NA with a missing/zero-information flag. Do not award agreement for two empty strings.</p>
+<p>BM25 with field-specific length normalization:
+\[
+BM25(q,d)=\sum_{t\in q}
+\log\left(1+\frac{N-df(t)+.5}{df(t)+.5}\right)
+\frac{tf(t,d)(k_1+1)}
+{tf(t,d)+k_1(1-b+b|d|/\overline{|d|})}.
+\]
+Use separate name/address fields and fit their weights on training folds. BM25 is a retrieval score, not a probability; cross-query raw comparisons require context. Lucene's documented default parameters are a starting point, not tuned business settings. <a href="https://lucene.apache.org/core/7_6_0/core/org/apache/lucene/search/similarities/BM25Similarity.html">Lucene BM25</a></p>
+<p>Let \(v_A(t)\) be L2-normalized TF-IDF and \(m(t)=\arg\max_{u\in B}\mathrm{JW}(t,u)\). A directed SoftTF-IDF feature is
+\[
+S(A,B)=\sum_{\substack{t\in A\\ \mathrm{JW}(t,m(t))&gt;\theta}}
+v_A(t)v_B(m(t))\mathrm{JW}(t,m(t)).
+\]
+Average both directions for a symmetric feature. Reuse of the same target token means it is not automatically a bounded cosine metric. As a costlier proposed alternative, maximize \(\sum_{(t,u)\in M}\sqrt{w_tw_u}\,\mathrm{sim}(t,u)\) over a one-to-one token matching \(M\), normalized by \(\sqrt{W(A)W(B)}\). Short-token Hungarian alignment costs roughly cubic time in token count. Monge–Elkan averages each token's best counterpart and is cheaper but permits many-to-one alignment. <a href="https://www.cs.utexas.edu/~ai-lab/pubs/ijcai03.pdf">String-metric study</a></p>
+<p>Dense similarity, fusion and relative scores:
+\[
+z(x)=f_\theta(x)/\|f_\theta(x)\|_2,\quad s_d(x,y)=z(x)^\top z(y),
+\]
+\[
+RRF(d)=\sum_{r:d\in C_r}\frac1{k_0+\mathrm{rank}_r(d)},\quad
+\Delta_i=s_{i1}-s_{i2},\quad r_i=\frac{s_{i1}}{s_{i2}+\epsilon}.
+\]
+RRF is motivated by <a href="https://research.google/pubs/reciprocal-rank-fusion-outperforms-condorcet-and-individual-rank-learning-methods/">Cormack, Clarke and Buettcher (SIGIR 2009)</a>. Use \(k_0=60\) as an initial fusion setting and validate it. Score ratios are meaningful only on a positive, fixed scale, not arbitrary signed logits.</p>
+<p>Reliability-conditioned numeric conflicts:
+\[
+I_f=1[\text{both valid and incompatible on }f],\qquad
+C_{ij}=\lambda_h r_hI_h+\lambda_p r_pI_p+\lambda_{\rm phone}r_{\rm phone}I_{\rm phone}
++\lambda_n r_nI_n.
+\]
+Supply individual conflicts and reliability to the tree. A compressor may use \(s_{\rm cheap}-C_{ij}\), but tune penalties to candidate recall, not final acceptance precision; penalizing twice can erase true matches.</p>
+<p>With coordinates in radians, Earth radius \(R=6371.0088\)km:
+\[
+d=2R\arcsin\sqrt{\sin^2(\Delta\phi/2)+
+\cos\phi_1\cos\phi_2\sin^2(\Delta\lambda/2)}.
+\]
+Clip the square-root argument to[0,1]. Invalid/centroid coordinates produce missing or quality-conditioned evidence rather than a confident geographic contradiction.</p>
+<h3 id="62-calibration">6.2 Calibration</h3>
+<p>Fit all calibrators on predictions made without training on the scored reference groups, using the deployed retrieval/selection distribution.</p>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Definition</th>
+<th>Strength</th>
+<th>Limitation / decision</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Platt</td>
+<td>\(p=\sigma(az+b)\)</td>
+<td>Two parameters; can shift prior</td>
+<td>Parametric shape can be wrong</td>
+</tr>
+<tr>
+<td>Temperature</td>
+<td>\(p=\sigma(z/T),\,T&gt;0\)</td>
+<td>Cheap, preserves ranking</td>
+<td>No intercept; cannot repair ranking or arbitrary prior shift</td>
+</tr>
+<tr>
+<td>Isotonic</td>
+<td>Monotone \(g(s)\), fitted by pooled adjacent violators</td>
+<td>Flexible</td>
+<td>Tail data hunger and ties</td>
+</tr>
+<tr>
+<td>Beta</td>
+<td>\(\sigma(a\log s-b\log(1-s)+c)\), \(a,b\ge0\)</td>
+<td>Flexible monotone binary mapping; includes identity</td>
+<td>Clip endpoints; regularize small strata</td>
+</tr>
+</tbody>
+</table>
+<p>Assess NLL, Brier score, reliability plots and precision calibration near the actual acceptance threshold. A low average calibration error can hide the extreme-tail errors that harm singletons. Calibration is followed by metric-specific decision tuning; it is not itself F0.5 optimization. <a href="https://proceedings.mlr.press/v70/guo17a/guo17a.pdf">Guo et al.</a>, <a href="https://proceedings.mlr.press/v54/kull17a/kull17a.pdf">Kull et al.</a></p>
+<p>Train a small OOF stacker over tree/dense/optional cross-encoder scores if it beats the tree alone. Use a reranked flag and separate supported calibrations for selected/unselected pairs. Never treat a absent cross-encoder score as a negative prediction. Random negative subsampling changes class priors; representative calibration is preferred to a simple prior correction because hard-negative sampling is feature-dependent.</p>
+<h3 id="63-singleton-and-set-models">6.3 Singleton and set models</h3>
+<p>Let \(Y_i\) be the complete true external match set, \(C_i\) retrieved candidates, \(p_{ij}\) calibrated pair scores, and \(u_i\) pooled context. Proposed singleton model:
+\[
+q_i=P(|Y_i|&gt;0\mid u_i),\qquad
+P(\text{singleton}\mid u_i)=1-q_i.
+\]
+Train on one row per reference, including \(C_i=\varnothing\); label it from complete truth, not candidate presence. Context includes maxima, gaps, counts, channel agreement, rarity, conflicts and overflow. Include blocker-miss positives in training and report them separately.</p>
+<p>Do not use \(1-\prod_j(1-p_{ij})\) as a calibrated any-match probability: conditional independence is implausible and adding distractors changes it mechanically. Do not use candidate softmax: multiple candidates can all be positive.</p>
+<p>Compare:</p>
+<ul>
+<li>A: pair threshold only.</li>
+<li>B: singleton gate \(q_i\ge\tau_q\), then pair thresholds.</li>
+<li>C: jointly tuned set policy using \(q_i\), candidate support and conflicts.</li>
+</ul>
+<p>A low-cost proposed policy is
+\[
+T_i=\mathrm{clip}(T_0+\alpha a_i+\beta c_i,0,1),
+\]
+\[
+\widehat Y_i=
+\begin{cases}
+\varnothing,&amp;q_i&lt;\tau_q,\\
+\{j\in C_i:p_{ij}\ge T_i,\ \mathrm{compatible}(i,j)\},&amp;\text{otherwise}.
+\end{cases}
+\]
+Here \(a_i,c_i\) are defined/calibrated ambiguity and reliable-conflict summaries; fit coefficients and all thresholds inside validation, with shrinkage toward the global rule. Hard compatibility exclusions require validated ontology. A global top1–top2 margin veto is excluded. An optional candidate-specific margin can compare the best reliably incompatible branch, not another plausible duplicate.</p>
+<p><strong>Derived set-utility extension.</strong> For output size \(k&gt;0\), define
+\[
+A_{jk}=\sum_{m\ge1}\frac{1.25}{0.25m+k}
+P(y_{ij}=1,\ |Y_i|=m\mid u_i).
+\]
+Choose the top \(k\) values in column \(k\), sum them, then compare all \(k\), including empty-set utility \(P(|Y_i|=0\mid u_i)\). The count \(m\) includes true matches outside \(C_i\). This extends the reasoning of <a href="https://www.weiweicheng.com/research/papers/cheng-nips11.pdf">GFM</a> to F0.5; it is our derivation, not a result reported for business ER. Estimating the joint terms is difficult with sparse labels, so use this as an optional research comparator. Replacing the expectation of a ratio with a ratio of expectations is only an approximation.</p>
+<h3 id="64-metric-and-exact-global-threshold-optimizer">6.4 Metric and exact global-threshold optimizer</h3>
+<p>For \(g_i=|Y_i|\), \(k_i=|\widehat Y_i|\), \(t_i=|Y_i\cap\widehat Y_i|\):
+\[
+F_{0.5}^{(i)}=
+\begin{cases}
+1,&amp;g_i=k_i=0,\\
+\frac{1.25t_i}{0.25g_i+k_i},&amp;0.25g_i+k_i&gt;0.
+\end{cases}
+\]
+This count form avoids undefined precision/recall intermediates and includes false negatives outside retrieval. Equivalently,
+\[
+F_{0.5}=\frac{1.25TP}{1.25TP+FP+0.25FN}.
+\]
+Thus FP has four times the coefficient of FN in this denominator; this is not a universal fixed decision-cost ratio for macro F.</p>
+<p>The exact threshold-family objective is
+\[
+t^*=\arg\max_t\,N^{-1}\sum_i F_{0.5}^{(i)}(\{j:p_{ij}\ge t\}).
+\]
+Sort all candidate events descending by score, start with every predicted set empty, and update only affected references when a score enters. Process ties as a group. Track the sum of entity scores, and evaluate after every distinct score. Complexity is \(O(M\log M)\) sorting plus \(O(M)\) updates for \(M=\sum_i|C_i|\); external sorting supports large M. This finds the optimum <strong>within global threshold policies</strong>, not all possible set predictions.</p>
+<p>Tune group thresholds only with enough support; candidate-count, name-frequency, postal-availability, geography and ambiguity groups should be a small preregistered set. Sparse groups shrink to the global threshold. Fit conditional policies inside the outer fold, never on the same OOF labels used to advertise their gain. Include thresholds predicting all empty and all candidates. Do not assume .5 or the micro-F optimum applies.</p>
+<h3 id="65-conservative-graph-refinement">6.5 Conservative graph refinement</h3>
+<p>The initial output is a set of independent reference-centered stars. Since S1 is deduplicated, a unique-reference constraint on each external record may be appropriate <strong>only if branch-level ontology and labels confirm it</strong>. It does not justify one-to-one S1–S2 or S1–S3 matching, since multiple external records are allowed.</p>
+<p>One false bridge between clusters of sizes a and b creates ab implied cross-cluster co-memberships under closure. Shared mall addresses, chain domains, reception phones and common brands can form hubs. Connected components ignore negative evidence; <a href="https://www.cs.cmu.edu/~shuchi/papers/clusteringfull.pdf">correlation clustering</a> illustrates an objective that uses both signs, but its complete-graph formulation is too large here.</p>
+<p><strong>Proposed optional procedure:</strong> consider only tiny ambiguous components (initial cap20 records), require direct high-confidence support to a reference for every accepted external record, veto reliable country/branch conflicts, and score all cross-pairs needed for a proposed merge. Unknown edges remain unknown. Never merge S1 anchors based only on noisy external bridges. Run one refinement pass and compare singleton false positives before/after. If all-pair verification is too costly, abstain rather than approximate with an unsafe transitive claim. The default funded prediction path skips graph refinement unless its gain survives held-out testing.</p>
+<h2 id="7-validation-protocol-and-experiment-ledger">7. Validation protocol and experiment ledger</h2>
+<h3 id="71-five-fold-grouped-evaluation-with-realistic-distractors">7.1 Five-fold grouped evaluation with realistic distractors</h3>
+<p>Use five outer folds grouped by Source1EntityID. Stratify groups approximately by country, singleton status, match multiplicity and attribute completeness without splitting a reference. Keep all external positives of a held-out reference out of supervised fitting, negative mining and task-specific encoder training. Retain the fixed external search corpus as unlabeled retrieval infrastructure when a transductive deployment protocol permits it.</p>
+<p><strong>Leakage sensitivity tests:</strong> use verified real-entity components if bad reference deduplication splits one entity across IDs; additionally evaluate brand/family-held-out, shared-address and repeated-phone strata. Do not put every common-phone/name record into one “true entity” group—shared contact is a risk marker, not proof of identity. External records appearing under multiple references require label/ontology review. Learned alias dictionaries, imputation rules and frequency-based threshold policies must not use validation outcomes.</p>
+<p>For each fold, fit model/hyperparameters, calibrators, singleton model and thresholds using only the other four folds, with internal grouped separation. Held-out outer labels are used only to evaluate the locked pipeline. Save individual out-of-fold predictions so all ablations compare exactly the same references.</p>
+<p><strong>Pool progression:</strong> first pilot against at least500k–1M fixed unrelated external distractors, while including the natural evaluated truth set. Then confirm finalists against the full10M pool; small-pool metrics are not the headline result. Sweep pool size0.1M/1M/10M with a fixed reference sample to expose extreme distractors. Compute label-free index IDF over the applicable corpus and document this transductive choice.</p>
+<p>The same deployed blocker/compressor must run during validation. Do not artificially inject positives missing from retrieval into the measured candidate set. For training the matcher, such positives may be sampled explicitly, with provenance; evaluation still counts their retrieval misses.</p>
+<h3 id="72-metrics-and-fold-reporting-template">7.2 Metrics and fold reporting template</h3>
+<p>For non-singletons:
+\[
+R^{macro}_{cand@K}=\frac1{N_+}\sum_{i:g_i&gt;0}
+\frac{|Y_i\cap C_i^{(K)}|}{g_i}.
+\]
+Also report pair-weighted candidate recall, any-match recall and all-match coverage. Overall final macro F is the mean of per-reference F, <strong>not</strong> F computed from macro precision and macro recall.</p>
+<p>For descriptive entity precision/recall, define \(P_i=TP_i/k_i\) if k&gt;0, else1; \(R_i=TP_i/g_i\) if g&gt;0, else1 for an empty prediction and0 otherwise. Report this convention prominently; the count-based F formula is authoritative. Pairwise P/R aggregate all emitted pairs and all complete gold pairs, including gold absent from retrieval.</p>
+<p>Singleton accuracy \(=\#\{\text{true singletons predicted empty}\}/N_0\).
+Two distinct safety measurements:
+\[
+FP_{1000}=1000\frac{\sum_{i:g_i=0}|\widehat Y_i|}{N_0},\qquad
+Affected_{1000}=1000\frac{\sum_{i:g_i=0}1[|\widehat Y_i|&gt;0]}{N_0}.
+\]
+If no predictions exist, pair precision is reported NA rather than silently awarding a perfect pair classifier.</p>
+<table>
+<thead>
+<tr>
+<th>Outer fold</th>
+<th>Candidate macro R@5</th>
+<th>@10</th>
+<th>@20</th>
+<th>@40</th>
+<th>Mean / median K</th>
+<th>Pair P / R</th>
+<th>Entity P / R</th>
+<th>Macro F0.5</th>
+<th>Singleton accuracy</th>
+<th>FP /1000 singletons</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>NR</td>
+<td>NR</td>
+<td>NR</td>
+<td>NR</td>
+<td>NR</td>
+<td>NR</td>
+<td>NR</td>
+<td>NR</td>
+<td>NR</td>
+<td>NR</td>
+</tr>
+<tr>
+<td>2</td>
+<td>NR</td>
+<td>NR</td>
+<td>NR</td>
+<td>NR</td>
+<td>NR</td>
+<td>NR</td>
+<td>NR</td>
+<td>NR</td>
+<td>NR</td>
+<td>NR</td>
+</tr>
+<tr>
+<td>3</td>
+<td>NR</td>
+<td>NR</td>
+<td>NR</td>
+<td>NR</td>
+<td>NR</td>
+<td>NR</td>
+<td>NR</td>
+<td>NR</td>
+<td>NR</td>
+<td>NR</td>
+</tr>
+<tr>
+<td>4</td>
+<td>NR</td>
+<td>NR</td>
+<td>NR</td>
+<td>NR</td>
+<td>NR</td>
+<td>NR</td>
+<td>NR</td>
+<td>NR</td>
+<td>NR</td>
+<td>NR</td>
+</tr>
+<tr>
+<td>5</td>
+<td>NR</td>
+<td>NR</td>
+<td>NR</td>
+<td>NR</td>
+<td>NR</td>
+<td>NR</td>
+<td>NR</td>
+<td>NR</td>
+<td>NR</td>
+<td>NR</td>
+</tr>
+<tr>
+<td>Pooled OOF / entity bootstrap95% CI</td>
+<td>NR</td>
+<td>NR</td>
+<td>NR</td>
+<td>NR</td>
+<td>NR</td>
+<td>NR</td>
+<td>NR</td>
+<td>NR</td>
+<td>NR</td>
+<td>NR</td>
+</tr>
+</tbody>
+</table>
+<p>Publish country/source pair, name-frequency, missingness, branch density and multiplicity slices. Include p95/p99/max K, overflow rate, zero-candidate rate, compression retention, all-match coverage and singleton affected-rate in the machine-readable metrics artifact.</p>
+<p>Bootstrap references (or stronger leakage groups), not independent pairs; use paired resampling for ablation differences. Use a final untouched holdout when repeatedly comparing many policies. An illustrative singleton precision audit: with zero affected singletons among n independently sampled singletons, the approximate95% upper affected-rate is3/n; n=3000 only supports roughly1/1000, not zero risk. Cluster dependence reduces effective sample size. Complete truth quality is a prerequisite, not a modeling detail.</p>
+<h3 id="73-ablation-matrix-and-cost-accounting">7.3 Ablation matrix and cost accounting</h3>
+<p>Every experiment logs delta versus its stated parent, recall changes, singleton errors, wall time, instance, billed hours and actual dollars. Do not charge shared preprocessing repeatedly when reporting marginal cost; report both incremental and cumulative project spend.</p>
+<p>\[
+\mathrm{CostEfficiency}=\frac{\Delta F_{0.5}}{\mathrm{USD}},\qquad
+\mathrm{CostPer0.001}=\frac{0.001\cdot\mathrm{USD}}{\Delta F_{0.5}}
+\quad(\Delta F_{0.5}&gt;0).
+\]
+If gain is nonpositive, label cost-per-improvement “no improvement,” not a negative attractive cost. If gain is NR, these are NR. Compare full-pipeline gains: cheap pairwise improvement that worsens singleton errors is not a win.</p>
+<p>The marginal cost limits below are experiment admission caps within the workstream budget, <strong>not additive guaranteed expenditures or measured runtimes</strong>. Reuse candidate/feature artifacts.</p>
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Experiment / parent</th>
+<th>Main question</th>
+<th>Instance / expected pilot wall time</th>
+<th style="text-align: right;">Marginal compute cap</th>
+<th>ΔF0.5 / cost-per.001</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>E01</td>
+<td>Exact channels only</td>
+<td>Cheap anchors and singleton errors</td>
+<td>c5.4xlarge, ≤1h</td>
+<td style="text-align: right;">$.82</td>
+<td>NR / NR</td>
+</tr>
+<tr>
+<td>E02</td>
+<td>+ sparse / E01</td>
+<td>Baseline coverage at K≤40</td>
+<td>r5.4xlarge, ≤2h</td>
+<td style="text-align: right;">$2.42</td>
+<td>NR / NR</td>
+</tr>
+<tr>
+<td>E03</td>
+<td>Frozen dense only</td>
+<td>Lexical-divergence recovery</td>
+<td>g5.xlarge, ≤1h sample</td>
+<td style="text-align: right;">$1.41</td>
+<td>NR / NR</td>
+</tr>
+<tr>
+<td>E04</td>
+<td>Sparse+dense / E02</td>
+<td>Marginal recall after compression</td>
+<td>r5.4xlarge, ≤1h cached</td>
+<td style="text-align: right;">$1.21</td>
+<td>NR / NR</td>
+</tr>
+<tr>
+<td>E05</td>
+<td>Engineered score only</td>
+<td>Conventional fuzzy baseline</td>
+<td>c5.4xlarge, ≤1h</td>
+<td style="text-align: right;">$.82</td>
+<td>NR / NR</td>
+</tr>
+<tr>
+<td>E06</td>
+<td>Bi-encoder score only</td>
+<td>Retrieval score as classifier</td>
+<td>c5.4xlarge, ≤.5h cached</td>
+<td style="text-align: right;">$.41</td>
+<td>NR / NR</td>
+</tr>
+<tr>
+<td>E07</td>
+<td>Tree ensemble / E05</td>
+<td>Feature interactions</td>
+<td>c5.4xlarge, ≤2h</td>
+<td style="text-align: right;">$1.63</td>
+<td>NR / NR</td>
+</tr>
+<tr>
+<td>E08</td>
+<td>Targeted cross-encoder / E07</td>
+<td>Hard-case incremental precision</td>
+<td>g5.xlarge, ≤2h sample</td>
+<td style="text-align: right;">$2.82</td>
+<td>NR / NR</td>
+</tr>
+<tr>
+<td>E09</td>
+<td>Hard negatives / E07</td>
+<td>Deployment-tail discrimination</td>
+<td>c5.4xlarge, ≤1h cached</td>
+<td style="text-align: right;">$.82</td>
+<td>NR / NR</td>
+</tr>
+<tr>
+<td>E10</td>
+<td>Remove/add IDF / E07</td>
+<td>Rarity benefit</td>
+<td>c5.4xlarge, ≤.5h</td>
+<td style="text-align: right;">$.41</td>
+<td>NR / NR</td>
+</tr>
+<tr>
+<td>E11</td>
+<td>Remove/add numeric conflicts / E07</td>
+<td>Branch discrimination</td>
+<td>c5.4xlarge, ≤.5h</td>
+<td style="text-align: right;">$.41</td>
+<td>NR / NR</td>
+</tr>
+<tr>
+<td>E12</td>
+<td>Remove/add ranks/margins / E07</td>
+<td>Useful candidate context</td>
+<td>c5.4xlarge, ≤.5h</td>
+<td style="text-align: right;">$.41</td>
+<td>NR / NR</td>
+</tr>
+<tr>
+<td>E13</td>
+<td>Singleton B/C vs A</td>
+<td>Set modeling versus pair complexity</td>
+<td>c5.4xlarge, ≤1h</td>
+<td style="text-align: right;">$.82</td>
+<td>NR / NR</td>
+</tr>
+<tr>
+<td>E14</td>
+<td>Conservative graph / best locked</td>
+<td>Gain without singleton damage</td>
+<td>c5.4xlarge, ≤.5h small components</td>
+<td style="text-align: right;">$.41</td>
+<td>NR / NR</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Channel marginal-recall table to fill from actual retrieval:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Added channel</th>
+<th>Union R@5/10/20/40</th>
+<th>Δmacro candidate recall@40</th>
+<th>Δall-match coverage</th>
+<th>Mean/p95 K</th>
+<th>Singleton FP after locked scorer</th>
+<th>Cost</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Phone/domain anchors</td>
+<td>NR</td>
+<td>NR</td>
+<td>NR</td>
+<td>NR</td>
+<td>NR</td>
+<td>NR</td>
+</tr>
+<tr>
+<td>Address/rare-token anchors</td>
+<td>NR</td>
+<td>NR</td>
+<td>NR</td>
+<td>NR</td>
+<td>NR</td>
+<td>NR</td>
+</tr>
+<tr>
+<td>Name BM25/character</td>
+<td>NR</td>
+<td>NR</td>
+<td>NR</td>
+<td>NR</td>
+<td>NR</td>
+<td>NR</td>
+</tr>
+<tr>
+<td>Address sparse</td>
+<td>NR</td>
+<td>NR</td>
+<td>NR</td>
+<td>NR</td>
+<td>NR</td>
+<td>NR</td>
+</tr>
+<tr>
+<td>Geo/neighbor cells</td>
+<td>NR</td>
+<td>NR</td>
+<td>NR</td>
+<td>NR</td>
+<td>NR</td>
+<td>NR</td>
+</tr>
+<tr>
+<td>Dense rescue</td>
+<td>NR</td>
+<td>NR</td>
+<td>NR</td>
+<td>NR</td>
+<td>NR</td>
+<td>NR</td>
+</tr>
+<tr>
+<td>Compression to20/40</td>
+<td>NR</td>
+<td>NR</td>
+<td>NR</td>
+<td>NR</td>
+<td>NR</td>
+<td>NR</td>
+</tr>
+</tbody>
+</table>
+<p>Both incremental-addition and leave-one-channel-out ablations are needed: two redundant channels can each look weak in isolation from their shared contribution. Keep fusion/compression retraining rules explicit for each comparison.</p>
+<h3 id="74-compute-gates">7.4 Compute gates</h3>
+<ol>
+<li><strong>Cheap, before model complexity:</strong> audit label completeness, branch identity, scorer empty behavior, file widths and normalization; run exact+sparse retrieval. If macro recall@40 is below95%, inspect misses by failure type. Dense retrieval is not the automatic remedy for parsing or label errors.</li>
+<li><strong>Sparse tuning:</strong> manual versus automatic fields; rarity, geography and numeric-preserving compression. Target candidate recall above98%, preferably99%, with most K&lt;40 and small documented overflow. If impossible, report the observed frontier rather than claiming the target.</li>
+<li><strong>Dense admission:</strong> on a representative large pool, require a prespecified useful incremental recall (example ≥.5 percentage points after compression), recovered hard-case evidence, and projected embedding/index cost within its envelope. Full10M confirmation is mandatory before a final claim.</li>
+<li><strong>Matcher admission:</strong> compare tree families, conflict/IDF/context features and singleton policy first. Expensive neural reranking requires a paired entity-bootstrap lower confidence bound above0 and a useful point gain (example ≥.001 macro F), without exceeding a prespecified singleton-error tolerance.</li>
+<li><strong>Graph admission:</strong> the same significance/useful-gain test plus no material singleton deterioration and verified branch constraints. Default remains no graph changes.</li>
+<li><strong>Spend admission:</strong> before each job require remaining balance ≥ projected job upper cost + $55 rerun + $25 emergency + remaining necessary storage/finalization. Reserve funds cannot be consumed by optional ablations.</li>
+</ol>
+<p>These cutoffs are proposed preregistered choices, not claims that any component will attain them. No quantitative accuracy uplift can be estimated reliably without this project's labels; the report quantifies <strong>minimum useful benefit</strong>, runtime sensitivity and cost instead of fabricating expected deltas.</p>
+<h2 id="8-end-to-end-architecture-and-implementation-pseudocode">8. End-to-end architecture and implementation pseudocode</h2>
+<h3 id="81-architecture">8.1 Architecture</h3>
+<pre class="mermaid">flowchart TD
+    RAW[&quot;Raw data — S3&quot;] --&gt; CP[&quot;Country partition — CPU Processing&quot;]
+    CP --&gt; N[&quot;Normalize/canonicalize — CPU; Parquet to S3&quot;]
+    N --&gt; D[&quot;Deterministic blocking — CPU; local postings&quot;]
+    N --&gt; S[&quot;Sparse retrieval — CPU; local disk/EBS&quot;]
+    S --&gt; B[&quot;BM25&quot;]
+    S --&gt; T[&quot;Character TF-IDF&quot;]
+    S --&gt; R[&quot;Rare-token index&quot;]
+    N --&gt; E[&quot;Optional frozen/adapted embeddings — GPU batches&quot;]
+    E --&gt; A[&quot;Dense ANN — CPU build/query; local index&quot;]
+    D --&gt; U[&quot;Candidate union and ID dedup — CPU&quot;]
+    B --&gt; U
+    T --&gt; U
+    R --&gt; U
+    A --&gt; U
+    U --&gt; C[&quot;Candidate compression + audited overflow — CPU&quot;]
+    C --&gt; F[&quot;Pair features — CPU; streamed Parquet&quot;]
+    F --&gt; G[&quot;Fast gradient-boosted matcher — CPU&quot;]
+    G --&gt; H[&quot;Hard-candidate selection — CPU&quot;]
+    H --&gt; X[&quot;Optional cross-encoder — GPU; capped pairs&quot;]
+    G --&gt; P[&quot;OOF probability calibration — CPU&quot;]
+    X --&gt; P
+    P --&gt; Q[&quot;Singleton detection — CPU; include empty groups&quot;]
+    Q --&gt; SET[&quot;Set-level policy — CPU&quot;]
+    SET --&gt; GR[&quot;Optional conservative graph refinement — CPU&quot;]
+    GR --&gt; OUT[&quot;Final match sets + audit — S3&quot;]
+    F --&gt; M[&quot;Train-fold hard-negative mining — CPU&quot;]
+    M -. optional adaptation .-&gt; E
+    M -. tree fitting .-&gt; G
+</pre>
+<p>Channel branches are parallel logical inputs, not mandatory sequential filters. A candidate need not satisfy every blocker. GPU stages read sequential shards; random metadata/index access remains local to CPU jobs.</p>
+<h3 id="82-pseudocode-conventions">8.2 Pseudocode conventions</h3>
+<p>This is implementation-oriented pseudocode, not an executed production implementation. Helper names correspond to algorithms or schemas defined in Sections4–7. Every artifact has a dataset hash, normalization version, split ID and model/index version. Writes are per-shard and atomic; a success manifest is published only after all expected rows are present.</p>
+<pre><code class="language-python">def normalize_record(row, locale_tables, parser, phone_parser):
+    r = {&quot;id&quot;: stable_id(row.source, row.source_id),
+         &quot;source&quot;: row.source, &quot;raw&quot;: preserve_original(row)}
+    r[&quot;country&quot;] = canonical_country(row.country)
+    # Missing/uncertain country is quarantined or resolved using trusted evidence.
+    # Never silently compare two known different countries.
+    r[&quot;name_native&quot;] = unicode_normalize_casefold(row.name)
+    r[&quot;name_variants&quot;] = unique_nonempty([
+        r[&quot;name_native&quot;],
+        accent_fold(r[&quot;name_native&quot;]),
+        transliterate_if_supported(r[&quot;name_native&quot;]),
+        expand_name_abbreviations(r[&quot;name_native&quot;], r[&quot;country&quot;])
+    ])
+    r[&quot;aliases&quot;] = normalize_alias_list(row.alternate_name)
+    addr = parse_with_fallback(row.address, r[&quot;country&quot;], parser)
+    for field in [&quot;house&quot;, &quot;unit&quot;, &quot;street&quot;, &quot;locality&quot;, &quot;city&quot;, &quot;state&quot;]:
+        r[field] = canonicalize_typed(addr[field], field, r[&quot;country&quot;])
+    r[&quot;postal&quot;] = canonical_postal_string(row.postal, r[&quot;country&quot;])
+    r[&quot;phones&quot;] = valid_phone_set(row.phone, r[&quot;country&quot;], phone_parser,
+                                  preserve_extensions=True)
+    r[&quot;domain&quot;], r[&quot;url_path&quot;] = canonical_url(row.url,
+                                              preserve_branch_path=True)
+    r[&quot;lat&quot;], r[&quot;lon&quot;], r[&quot;geo_quality&quot;] = validate_coordinates(row)
+    r[&quot;category&quot;] = frozen_category_mapping(row.category)
+    r[&quot;name_numbers&quot;] = typed_numeric_sequences(r[&quot;name_native&quot;])
+    r[&quot;availability&quot;] = field_availability(r)
+    r[&quot;tokens&quot;] = cached_tokens_and_ngrams(r)
+    r[&quot;provenance&quot;] = normalization_versions_and_quality(addr)
+    return r
+
+def build_indices(candidate_shards, country):
+    # External sort keeps dictionary/posting construction bounded.
+    for shard in sequential_parquet(candidate_shards, country=country):
+        for r in shard:
+            append_metadata_row(r.id, compact_metadata(r))
+            for field, token in distinct_index_terms(r):
+                external_sort_buffer.emit((field, token, r.id))
+            for kind, key in safe_anchor_keys(r):
+                anchor_sort_buffer.emit((kind, key, r.id))
+    postings = sorted_postings_with_df(external_sort_buffer)
+    anchors = sorted_postings_with_df(anchor_sort_buffer)
+    sparse = build_fielded_topk_index(postings, stored_raw_text=False)
+    return publish_index_manifest(sparse, anchors, metadata_offsets())
+
+def sparse_candidates(q, index, quotas):
+    hits = []
+    for channel in anchor_channels(q):
+        bucket = index.anchor_lookup(channel.key)
+        if bucket.df &lt;= channel.safe_size:
+            hits.extend(with_provenance(bucket.ids, channel))
+        else:
+            hits.extend(probe_with_secondary_keys(q, bucket, channel))
+    for field in [&quot;name&quot;, &quot;address&quot;]:
+        hits.extend(index.topk(field, query_variants(q, field),
+                               k=quotas[field], pruning=&quot;upper_bound&quot;))
+    # Neighbor cells and non-geographic fallback both remain possible.
+    hits.extend(geo_name_candidates(q, include_neighbor_cells=True))
+    return hits
+
+def encode_shards(records, model, out, checkpoint_manifest):
+    model.eval().to(&quot;cuda&quot;)
+    for shard in records:
+        if checkpoint_manifest.completed(shard.id, model.hash):
+            continue
+        writer = start_atomic_fp16_shard(out, shard.id)
+        for batch in length_bucketed_batches(shard, token_cap=128):
+            tokens = tokenize_with_workers(batch)
+            tokens = pin_and_async_copy(tokens, device=&quot;cuda&quot;)
+            with inference_mode(), autocast():
+                vectors = l2_normalize(model(tokens))
+            writer.append(batch.ids, vectors.cpu().to(&quot;float16&quot;))
+        writer.finish_with_checksum()
+        checkpoint_manifest.commit(shard.id, model.hash)
+
+def ann_candidates(q_vectors, country_index, raw_fp16, k_dense=40):
+    # Never pretend PQ's approximate ranking is exact.
+    approximate_scores, rough_ids = country_index.search(q_vectors, k=200)
+    valid = rough_ids &gt;= 0  # FAISS uses -1 when neighbors are unavailable.
+    vectors = masked_memmap_gather(raw_fp16, rough_ids, valid)
+    exact_scores = batched_dot(q_vectors, vectors.to_float32())
+    exact_scores[~valid] = -float(&quot;inf&quot;)
+    # Exact relative to stored FP16 vectors, not pre-quantization FP32.
+    return topk_valid_ids(rough_ids, exact_scores, valid, k_dense)
+
+def merge_and_compress(q, channel_hits, compressor, target_k=40):
+    candidates = merge_by_external_id(channel_hits)
+    for c in candidates:
+        c.channel_mask = union_channel_flags(c)
+        c.rrf = sum(1.0 / (60 + rank) for rank in c.observed_ranks)
+        c.cheap = cheap_pair_features(q, c, include_typed_conflicts=True)
+        c.priority = compressor.score(c.cheap, c.rrf, c.channel_mask)
+    protected = reliable_rare_anchor_hits(q, candidates)
+    chosen = recall_tuned_select(candidates, protected, target_k)
+    overflow = validated_multiplicity_overflow(q, candidates, chosen)
+    log_counts_and_truncation(q.id, candidates, chosen, overflow)
+    return deduplicate_ids(chosen + overflow)
+
+def compute_features(reference_batch, candidate_lists, metadata):
+    needed_ids = unique_ids(candidate_lists)
+    # Read by shard/offset in batches, not one S3 GET per candidate.
+    external_rows = metadata.gather_sorted(needed_ids)
+    for q in reference_batch:
+        for candidate_id in candidate_lists[q.id]:
+            r = external_rows[candidate_id]
+            f = compare_name_address_contacts(q, r)
+            f.update(numeric_conflicts_with_reliability(q, r))
+            f.update(geographic_features_or_missing(q, r))
+            f.update(retrieval_provenance_features(q.id, candidate_id))
+            f.update(pair_availability(q, r))
+            yield (q.id, candidate_id, f)
+
+def mine_negatives(train_refs, candidates, complete_truth, scores, budget):
+    for q in train_refs:
+        positives = complete_truth[q.id]
+        eligible = []
+        for j in candidates[q.id]:
+            if j in positives:
+                continue
+            if not complete_truth.knows_pair_status(q.id, j):
+                continue  # Unknown is not a negative.
+            eligible.append((j, scores[q.id, j], provenance(q.id, j)))
+        hard = diverse_top_scored(eligible, max_items=4,
+                                   diversity=[&quot;source&quot;, &quot;channel&quot;, &quot;branch&quot;])
+        easy = sample_verified_country_negatives(q, max_items=2)
+        lexical = diverse_lexical_negatives(eligible, max_items=4)
+        yield deduplicate_and_cap(q.id, hard + easy + lexical, total_cap=12)
+    # For verified singleton q, use up to8 difficult negatives per reference.
+    # Refresh once after warm-up, never with outer-validation labels.
+
+def attach_context(groups, first_pass_model):
+    for qid, pairs in groups:
+        scores = first_pass_model.predict(pairs.features)
+        stats = pool_candidate_statistics(scores, pairs.provenance,
+                                          include_empty=True)
+        yield add_context_features(pairs, stats)
+    # Training context must use first_pass_model excluding these qid groups.
+
+def score_pairs(bundle, feature_groups):
+    # Identical scoring path for calibration, set training, tuning and serving.
+    contextual = attach_context(feature_groups, bundle.first_pass_model)
+    raw = bundle.context_matcher.predict(contextual)
+    route = bundle.selector.select(raw, contextual)
+    neural = bundle.reranker.predict_selected(contextual, route)
+    # Disabled components are explicit identity/no-op implementations.
+    return bundle.stacker.combine(raw, neural, route), route
+
+def fit_pair_bundle(fit_data, reference_groups):
+    first_pass = fit_feature_tree(fit_data)
+    # All training context/stacker inputs exclude the scored reference's labels.
+    oof_context = grouped_oof_context_features(fit_data, reference_groups)
+    context_matcher = fit_context_tree(fit_data, oof_context)
+    selector = fit_selection_rule_inside_training(fit_data, reference_groups)
+    reranker = fit_optional_reranker_on_training_only(fit_data, selector)
+    oof_routed = grouped_oof_routed_scores(fit_data, reference_groups,
+                                          selector, reranker)
+    stacker = fit_optional_stacker(oof_routed)
+    return ScoreBundle(first_pass, context_matcher, selector, reranker, stacker)
+
+def fit_strict_pipeline(outer_train_refs, corpus, frozen_retriever):
+    fit_ids, cal_ids, set_ids, tune_ids = grouped_internal_partition(
+        outer_train_refs, stratify=[&quot;country&quot;, &quot;singleton&quot;, &quot;multiplicity&quot;])
+    # Retrieving against corpus is permitted; these labels are separated.
+    compressor = fit_recall_compressor(
+        fit_ids, corpus, frozen_retriever, labels=truth(fit_ids))
+    data = retrieve_and_featurize(fit_ids | cal_ids | set_ids | tune_ids,
+                                 corpus, frozen_retriever,
+                                 compressor=compressor)
+    scorer = fit_pair_bundle(data[fit_ids], reference_groups=fit_ids)
+    cal_raw, cal_route = score_pairs(scorer, data[cal_ids])
+    calibrator = choose_route_aware_calibrator(cal_raw, cal_route,
+                                    truth(cal_ids),
+                                    criterion=&quot;NLL_and_tail_reliability&quot;)
+    set_raw, set_route = score_pairs(scorer, data[set_ids])
+    set_scores = calibrator(set_raw, set_route)
+    singleton_model = fit_any_match_model(
+        pool_with_zero_candidate_rows(set_scores, set_ids),
+        labels={i: bool(truth(i)) for i in set_ids})
+    tune_raw, tune_route = score_pairs(scorer, data[tune_ids])
+    tune_scores = calibrator(tune_raw, tune_route)
+    tune_q = singleton_model.predict(pool_with_zero_candidate_rows(
+                                    tune_scores, tune_ids))
+    policy = optimize_macro_policy(tune_scores, tune_q, truth(tune_ids))
+    return scorer, calibrator, singleton_model, policy, compressor
+    # Cross-fitting can reclaim training data, but every upstream score used
+    # by a fitted downstream stage must be generated without that row's label.
+
+def five_fold_evaluate(all_labeled_refs, fixed_corpus, frozen_retriever):
+    folds = grouped_folds(all_labeled_refs, key=&quot;Source1EntityID&quot;, n=5)
+    oof = []
+    for fold in folds:
+        train_ids, valid_ids = fold.train, fold.valid
+        pipeline = fit_strict_pipeline(train_ids, fixed_corpus,
+                                       frozen_retriever)
+        candidates = retrieve_all(valid_ids, fixed_corpus, frozen_retriever,
+                                  compressor=pipeline[-1])
+        prediction = final_predict(valid_ids, candidates, pipeline)
+        entity_rows = evaluate_complete_sets_per_reference(
+            prediction, truth(valid_ids), candidate_lists=candidates,
+            empty_empty_score=1)
+        persist_reference_predictions_and_metrics(fold.id, prediction, entity_rows)
+        oof.extend(entity_rows)
+    return entity_weighted_aggregate(oof), paired_entity_bootstrap(oof)
+
+def entity_f05(gold_count, predicted_count, true_positive_count):
+    if gold_count == 0 and predicted_count == 0:
+        return 1.0
+    return 1.25 * true_positive_count / (0.25 * gold_count + predicted_count)
+
+def exact_macro_threshold(candidate_rows, gold_sets, all_reference_ids):
+    # Rows are unique(qid, external_id, calibrated_probability).
+    # Include gold outside candidate_rows via the complete gold-set size.
+    k = {i: 0 for i in all_reference_ids}
+    tp = {i: 0 for i in all_reference_ids}
+    g = {i: len(gold_sets[i]) for i in all_reference_ids}
+    total = sum(entity_f05(g[i], 0, 0) for i in all_reference_ids)
+    best_value, best_threshold = total / len(g), float(&quot;inf&quot;)
+    for score, tied_rows in descending_external_sort_grouped(candidate_rows):
+        # Aggregate by reference: one huge isotonic-score tie need not
+        # materialize millions of pair rows in RAM.
+        changes = {}
+        for row in tied_rows:
+            dk, dtp = changes.get(row.qid, (0, 0))
+            changes[row.qid] = (
+                dk + 1, dtp + int(row.external_id in gold_sets[row.qid]))
+        for i, (dk, dtp) in changes.items():
+            total -= entity_f05(g[i], k[i], tp[i])
+            k[i] += dk
+            tp[i] += dtp
+            total += entity_f05(g[i], k[i], tp[i])
+        current = total / len(g)
+        if current &gt; best_value:  # Prefer higher threshold on exact ties.
+            best_value, best_threshold = current, score
+    return best_threshold, best_value
+
+def optimize_macro_policy(pair_scores, q_any, gold_sets):
+    # Threshold parameters tuned ONLY on the internal tuning groups.
+    best = None
+    for singleton_gate in preregistered_gate_grid():
+        eligible = filter_groups_by_q(pair_scores, q_any, singleton_gate)
+        threshold, score = exact_macro_threshold(
+            eligible, gold_sets, all_reference_ids=gold_sets.keys())
+        candidate = (score, singleton_gate, threshold)
+        best = keep_best_with_simple_policy_tie_break(best, candidate)
+    # Conditional ambiguity thresholds: small supported grid, inner validation,
+    # shrink sparse groups; compare against best global policy.
+    return validated_policy(best)
+
+def final_predict(refs, candidates, pipeline):
+    scorer, calibrator, singleton_model, policy, compressor = pipeline
+    output = []
+    for batch in shard_aligned_batches(refs):
+        features = compute_features(batch, candidates, local_metadata())
+        raw, route = score_pairs(scorer, group_features_by_reference(features))
+        p = calibrator(raw, route)
+        groups = pool_with_zero_candidate_rows(p, batch)
+        q_any = singleton_model.predict(groups)
+        for ref in batch:
+            selected = policy.select(ref, p[ref.id], q_any[ref.id])
+            selected = optional_verified_graph_refinement(ref, selected)
+            output.append((ref.id, sorted(unique_external_ids(selected))))
+    assert exactly_one_output_row_per_reference(output, refs)
+    assert no_known_cross_country_edges(output)
+    return atomic_publish_with_audit(output)
+</code></pre>
+<p>For large production jobs, process by reference shard and preserve boundaries through pooling/calibration. Avoid one Python object per pair in real code; use Arrow arrays and compiled string kernels. Pure-Python pseudocode loops express logic, not the performance implementation.</p>
+<h2 id="9-sagemaker-systems-plan-and-verified-pricing">9. SageMaker systems plan and verified pricing</h2>
+<h3 id="91-price-basis-and-instance-selection">9.1 Price basis and instance selection</h3>
+<p>Prices were verified25 September2026 from the <strong>official regional SageMaker offer catalog</strong>, published2026-09-25T00:03:13Z, with On-Demand terms effective2026-09-01. These are SageMaker Training/Processing prices, not EC2 prices and not Studio notebook rates. <a href="https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonSageMaker/current/us-east-1/index.json">AWS SageMaker price catalog</a></p>
+<table>
+<thead>
+<tr>
+<th>Instance</th>
+<th style="text-align: right;">vCPU</th>
+<th style="text-align: right;">RAM GiB</th>
+<th>GPU / VRAM</th>
+<th>Local NVMe</th>
+<th style="text-align: right;">Training $/h</th>
+<th style="text-align: right;">Processing $/h</th>
+<th>Proposed role</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ml.c5.4xlarge</td>
+<td style="text-align: right;">16</td>
+<td style="text-align: right;">32</td>
+<td>None</td>
+<td>None</td>
+<td style="text-align: right;">.816</td>
+<td style="text-align: right;">.816</td>
+<td>Normalization, compiled features, trees</td>
+</tr>
+<tr>
+<td>ml.c5.9xlarge</td>
+<td style="text-align: right;">36</td>
+<td style="text-align: right;">72</td>
+<td>None</td>
+<td>None</td>
+<td style="text-align: right;">1.836</td>
+<td style="text-align: right;">1.836</td>
+<td>Only if useful CPU scaling is measured</td>
+</tr>
+<tr>
+<td>ml.m5.4xlarge</td>
+<td style="text-align: right;">16</td>
+<td style="text-align: right;">64</td>
+<td>None</td>
+<td>None</td>
+<td style="text-align: right;">.922</td>
+<td style="text-align: right;">.922</td>
+<td>Balanced fallback for moderate RAM</td>
+</tr>
+<tr>
+<td>ml.r5.4xlarge</td>
+<td style="text-align: right;">16</td>
+<td style="text-align: right;">128</td>
+<td>None</td>
+<td>None</td>
+<td style="text-align: right;">1.210</td>
+<td style="text-align: right;">1.210</td>
+<td>Index construction and random metadata</td>
+</tr>
+<tr>
+<td>ml.r5.8xlarge</td>
+<td style="text-align: right;">32</td>
+<td style="text-align: right;">256</td>
+<td>None</td>
+<td>None</td>
+<td style="text-align: right;">2.419</td>
+<td style="text-align: right;">2.419</td>
+<td>Only if active country index exceeds128GiB</td>
+</tr>
+<tr>
+<td>ml.g4dn.xlarge</td>
+<td style="text-align: right;">4</td>
+<td style="text-align: right;">16</td>
+<td>T4 /16GB</td>
+<td>125GB</td>
+<td style="text-align: right;">.736</td>
+<td style="text-align: right;">.736</td>
+<td>Budget small-model inference candidate</td>
+</tr>
+<tr>
+<td>ml.g5.xlarge</td>
+<td style="text-align: right;">4</td>
+<td style="text-align: right;">16</td>
+<td>A10G /24GB</td>
+<td>250GB</td>
+<td style="text-align: right;">1.408</td>
+<td style="text-align: right;">1.408</td>
+<td>Neural pilot and inference budget basis</td>
+</tr>
+<tr>
+<td>ml.g5.2xlarge</td>
+<td style="text-align: right;">8</td>
+<td style="text-align: right;">32</td>
+<td>A10G /24GB</td>
+<td>450GB</td>
+<td style="text-align: right;">1.515</td>
+<td style="text-align: right;">1.515</td>
+<td>Tokenization/RAM bottleneck alternative</td>
+</tr>
+</tbody>
+</table>
+<p>At equal16vCPU, r5.4xlarge costs about48% more than c5.4xlarge and provides4× RAM. Prefer m5 when64GiB is enough. A10G must deliver more than1.913× T4 throughput to beat its compute cost per record; benchmark both only if the small pilot expense is justified. g5.2xlarge costs about7.6% more than g5.xlarge and can win when extra CPU workers keep the GPU busy.</p>
+<p>GPU histogram boosting is worthwhile only if reduced training time exceeds the GPU/CPU price ratio plus startup/I/O overhead. The small labeled matrices expected here make CPU the initial choice. Do not run CPU string extraction on a GPU instance merely because a later stage uses a Transformer.</p>
+<h3 id="92-data-layout-and-resource-plan">9.2 Data layout and resource plan</h3>
+<pre><code class="language-text">s3://project/
+  raw/source1|source2|source3/
+  normalized/country=US|FR|IN/source=.../shard=.../
+  dictionaries/version=.../
+  indices/version=.../country=.../{anchors,bm25,tfidf,ann}/
+  embeddings/model=.../country=.../source=.../shard=.../
+  candidates/retriever=.../split=.../country=.../shard=.../
+  features/schema=.../split=.../country=.../shard=.../
+  models/{tree,encoder,reranker,calibration,singleton,policy}/version=.../
+  predictions/run=.../country=.../shard=.../
+  checkpoints/job=.../
+  metrics/run=.../
+  manifests/
+</code></pre>
+<p>Parquet with Zstandard is the default normalized/feature format; use Arrow in memory, compact numeric IDs, binary index files, and FP16 NumPy-compatible memory maps. Store lengths/offsets for strings instead of Python dictionaries of10M objects. Use128–512MB objects and32–128MB row groups initially; tune based on actual field widths and reads. Partition by country/source/shard, optionally state when useful, without making state a strict blocking requirement.</p>
+<table>
+<thead>
+<tr>
+<th>Stage</th>
+<th>Working RAM estimate</th>
+<th>VRAM</th>
+<th>Active local disk estimate</th>
+<th>Access / implementation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Normalize26.4M</td>
+<td>8–24GiB</td>
+<td>—</td>
+<td>50–200GB</td>
+<td>Sequential streaming, bounded parser workers</td>
+</tr>
+<tr>
+<td>Build sparse indices</td>
+<td>32–100GiB</td>
+<td>—</td>
+<td>100–250GB</td>
+<td>External sort, compact postings, one country at a time</td>
+</tr>
+<tr>
+<td>Sparse query + metadata</td>
+<td>32–100GiB</td>
+<td>—</td>
+<td>100–250GB</td>
+<td>Memory-mapped index + RAM cache</td>
+</tr>
+<tr>
+<td>Embedding small model</td>
+<td>8–14GiB host</td>
+<td>8–20GB</td>
+<td>30–150GB</td>
+<td>Sequential batches; avoid full corpus in host RAM</td>
+</tr>
+<tr>
+<td>ANN construction</td>
+<td>16–100GiB depending index</td>
+<td>Optional</td>
+<td>20–100GB</td>
+<td>Sample quantizer training; add chunks</td>
+</tr>
+<tr>
+<td>Feature extraction</td>
+<td>8–24GiB</td>
+<td>—</td>
+<td>30–150GB</td>
+<td>Stream100k–500k pair blocks</td>
+</tr>
+<tr>
+<td>Tree training</td>
+<td>8–28GiB target</td>
+<td>Optional</td>
+<td>10–100GB</td>
+<td>Labeled sample; histogram bins</td>
+</tr>
+<tr>
+<td>Cross-encoder</td>
+<td>8–14GiB host</td>
+<td>12–24GB</td>
+<td>10–50GB</td>
+<td>Length-bucketed128–192-token pairs</td>
+</tr>
+<tr>
+<td>Calibration/set model</td>
+<td>&lt;8GiB</td>
+<td>—</td>
+<td>&lt;10GB</td>
+<td>Per-reference OOF rows</td>
+</tr>
+<tr>
+<td>Final inference</td>
+<td>8–24GiB plus staged index where needed</td>
+<td>Only optional reranker</td>
+<td>30–150GB</td>
+<td>Shard-atomic offline output</td>
+</tr>
+</tbody>
+</table>
+<p>All resource ranges are engineering estimates conditional on actual record widths, vocabulary, postings, duplicate degree and implementation. A128GiB node does not guarantee an arbitrarily large Python-built index fits. At10M records, even80 name trigrams per record creates800M postings; a four-byte ID alone costs3.2GB before frequencies, offsets, vocabulary and additional fields. Country sharding and compression matter.</p>
+<p>Nominal69.2M pairs ×66 float32 values equals18.27GB before IDs/metadata; expanded missingness/context columns increase this. Do not load that full feature matrix into a32GiB process. Cache cheap record-level representations, compute batch pair features in compiled kernels, and stream predictions. Training needs the labeled/hard-negative subset, not every unlabeled pair.</p>
+<p><strong>Embedding storage calculations</strong>, decimal GB; GiB=GB/1.073741824:</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: right;">Dimensions</th>
+<th style="text-align: right;">FP32,10M</th>
+<th style="text-align: right;">FP16,10M</th>
+<th style="text-align: right;">INT8,10M</th>
+<th style="text-align: right;">FP16 GiB</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: right;">128</td>
+<td style="text-align: right;">5.12GB</td>
+<td style="text-align: right;">2.56GB</td>
+<td style="text-align: right;">1.28GB</td>
+<td style="text-align: right;">2.384GiB</td>
+</tr>
+<tr>
+<td style="text-align: right;">256</td>
+<td style="text-align: right;">10.24GB</td>
+<td style="text-align: right;">5.12GB</td>
+<td style="text-align: right;">2.56GB</td>
+<td style="text-align: right;">4.768GiB</td>
+</tr>
+<tr>
+<td style="text-align: right;">384</td>
+<td style="text-align: right;">15.36GB</td>
+<td style="text-align: right;">7.68GB</td>
+<td style="text-align: right;">3.84GB</td>
+<td style="text-align: right;">7.153GiB</td>
+</tr>
+<tr>
+<td style="text-align: right;">768</td>
+<td style="text-align: right;">30.72GB</td>
+<td style="text-align: right;">15.36GB</td>
+<td style="text-align: right;">7.68GB</td>
+<td style="text-align: right;">14.305GiB</td>
+</tr>
+</tbody>
+</table>
+<p>These follow \(N d \times\) bytes per element. Multiply by1.173 for candidates plus references, or2.64 for all26.4M; full384-dimensional FP16 evaluation vectors require9.00864GB. Do not embed unused records by default. INT8 needs quantization scales and quality validation; it is not an exact substitute for floats.</p>
+<p>For384-dimensional IVF-PQ48×8,10M codes plus64-bit IDs use roughly \(10^7(48+8)=.56\)GB, excluding centroids, tables and list overhead. IVFFlat uses approximately15.44GB, IVF-SQ8 about3.92GB. HNSWFlat atM32 needs about15.36GB vectors plus2.56GB bottom-level links, with upper layers/metadata/build memory extra. Feeding FP16 vectors to HNSWFlat does not make its internal storage FP16. <a href="https://github.com/facebookresearch/faiss/wiki/Faiss-indexes">Official FAISS index specifications</a></p>
+<p>Retain FP16 vectors for exact rescoring and index repair; retain an FP32 audit/training sample. Full FP32 storage is justified only by a measured numerical/reranking benefit or reproducibility requirement. Deleting all uncompressed embeddings after PQ construction can make a cheap reindex require expensive re-encoding.</p>
+<h3 id="93-avoiding-data-movement-bottlenecks">9.3 Avoiding data-movement bottlenecks</h3>
+<p>Normalize and tokenize canonical fields once; reuse identical serialized content across duplicate records through an ID-expansion map. Keep the model resident on GPU. Use inference mode, mixed precision, length bucketing, pinned host buffers, asynchronous prefetch and batched writes. Profile CPU tokenization separately—four host CPUs can starve an A10G.</p>
+<p>Stream Parquet/Arrow sequentially from S3, but stage random-access metadata and binary indices on local disk. A memmap reduces copies and lets the OS page cache help; it does not make unlimited random I/O free. Standard FAISS indices generally occupy RAM; use supported on-disk IVF configurations explicitly if needed, rather than assuming arbitrary indices become out-of-core.</p>
+<p>Do not shuttle the full ANN index between GPU and CPU for each query. CPU ANN plus GPU encoding is the initial design. If GPU ANN wins, copy each country index once and process many query batches, accounting for16/24GB VRAM limits.</p>
+<p>Training File mode stages data before use; FastFile provides on-demand file access and suits sequential scans. Choose according to access pattern. <a href="https://docs.aws.amazon.com/sagemaker/latest/dg/model-access-training-data.html">SageMaker input modes</a></p>
+<h3 id="94-managed-spot-checkpoints-and-execution-modes">9.4 Managed Spot, checkpoints and execution modes</h3>
+<p>Use <strong>Processing</strong> for preprocessing, index builds, feature generation, ordinary offline embedding inference and evaluation. Use <strong>Training</strong> for trees and Transformer fitting. No persistent endpoint is needed. Batch Transform is an alternative when a trained model artifact/container already supports bulk inference, but Processing is often simpler for combined feature/model pipelines.</p>
+<p>Managed Spot is a <strong>Training</strong> feature; do not mark ordinary Processing or Batch Transform jobs as Managed Spot jobs. A custom checkpointed Training container can run a resumable offline workload, but that is extra implementation, not a Processing Spot flag. <a href="https://docs.aws.amazon.com/sagemaker/latest/dg/model-managed-spot-training.html">Managed Spot</a>, <a href="https://docs.aws.amazon.com/sagemaker/latest/APIReference/API_CreateProcessingJob.html">Processing API</a>, <a href="https://docs.aws.amazon.com/sagemaker/latest/APIReference/API_CreateTransformJob.html">Transform API</a></p>
+<p>For eligible longer training jobs, checkpoint every5–10minutes: weights, optimizer, scheduler, mixed-precision scaler, RNGs, epoch/step, data cursor, split/normalization/model versions. Persist to /opt/ml/checkpoints and configure its S3 destination. Set max wait greater than max runtime and test resume on a small sample. For encoding, publish completed shard IDs and checksums; retry only incomplete shards. Local NVMe is ephemeral. <a href="https://docs.aws.amazon.com/sagemaker/latest/dg/model-checkpoints.html">SageMaker checkpoints</a></p>
+<p>AWS advertises savings up to90%, but the budget assumes0% guaranteed savings. A hypothetical50–70% discount on eight g5 training hours saves only$5.63–7.88. Complex custom Spot engineering is hard to justify for that saving. Use On-Demand for short jobs, build stages without robust checkpoints, and the first throughput pilot.</p>
+<p>No distributed training or multi-node Spark is required initially. Network coordination, replicated loading and idle workers can cost more than single-node sharding. Use local development for scripts, example normalization and report analysis; avoid an always-on Studio GPU. If Studio is required, shut down the application/kernel after use and price it separately.</p>
+<h3 id="95-s3ebs-and-operational-cost-controls">9.5 S3/EBS and operational cost controls</h3>
+<p>The official S3 catalog verified today lists us-east-1 Standard first-tier storage at$.023/GB-month, PUT/COPY/POST/LIST at$.005/1000, and GET/Tier2 at$.0004/1000. <a href="https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonS3/current/us-east-1/index.json">S3 regional price catalog</a></p>
+<p>Current SageMaker gp2 volume prices in the regional catalog are Processing$.10/GB-month and Training$.14/GB-month. Example:200GB Processing volume ×120h/730 ×$.10 = $3.29. Three hundred GB-month of S3 = $6.90. These examples plus requests, short training scratch, images and modest logs support a$20 ancillary allowance only if intermediate retention is bounded. Raw sizes were not provided; measure actual GB-days.</p>
+<p>GPU families with fixed NVMe use their local storage rather than an additional configurable gp2 volume under the cited Training/Processing APIs. Do not double-charge that disk as EBS; do not request a volume larger than supported local capacity. <a href="https://docs.aws.amazon.com/sagemaker/latest/APIReference/API_ResourceConfig.html">Training ResourceConfig</a>, <a href="https://docs.aws.amazon.com/sagemaker/latest/APIReference/API_ProcessingClusterConfig.html">ProcessingClusterConfig</a></p>
+<p>Keep buckets/jobs in one region. S3-to-AWS-service transfer in the same region has no S3 data-transfer charge, although requests and other network infrastructure can cost money. Avoid paid NAT paths when S3 endpoints suffice; avoid unnecessary internet egress. <a href="https://aws.amazon.com/s3/pricing/">Official S3 pricing</a></p>
+<p>Set job runtime limits, tag all jobs, and maintain a ledger using actual billed duration and storage lifetimes. Budget alarms are delayed notifications, not a strict real-time kill switch. Before optional jobs, calculate worst-case projected cost; stop when the protected rerun and emergency allowances would be encroached upon.</p>
+<h2 id="10-chronological-sagemaker-runbook-and-200-allocation">10. Chronological SageMaker runbook and $200 allocation</h2>
+<p>The sequence below distinguishes sample research from full-scale execution. One instance per row. Hours are <strong>planning estimates requiring pilot validation</strong>, not promises. Dollar amounts exclude storage, which is separately reserved. Gated jobs can be omitted; unused money remains available rather than being automatically spent.</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: right;">Step</th>
+<th>Purpose; input → output</th>
+<th>Mode / instance / count</th>
+<th>RAM target</th>
+<th style="text-align: right;">Hours</th>
+<th>Spot suitable? / checkpoint</th>
+<th style="text-align: right;">Compute cost</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: right;">1</td>
+<td>Representative raw/label pilot → normalization/throughput and metric manifest</td>
+<td>Processing c5.4xlarge ×1</td>
+<td>≤24GiB</td>
+<td style="text-align: right;">6</td>
+<td>No; cache pilot artifacts</td>
+<td style="text-align: right;">$4.896</td>
+</tr>
+<tr>
+<td style="text-align: right;">2</td>
+<td>26.4M raw → normalized Parquet/dictionaries</td>
+<td>Processing c5.4xlarge ×1</td>
+<td>≤24GiB</td>
+<td style="text-align: right;">8</td>
+<td>No native Spot; shard completion</td>
+<td style="text-align: right;">$6.528</td>
+</tr>
+<tr>
+<td style="text-align: right;">3</td>
+<td>10M candidate metadata → exact/sparse indices</td>
+<td>Processing r5.4xlarge ×1</td>
+<td>≤100GiB</td>
+<td style="text-align: right;">6</td>
+<td>No; completed country indices</td>
+<td style="text-align: right;">$7.260</td>
+</tr>
+<tr>
+<td style="text-align: right;">4</td>
+<td>Fixed large distractor corpus → sparse ablations and fold-safe cheap compressor</td>
+<td>Processing r5.4xlarge ×1</td>
+<td>≤100GiB</td>
+<td style="text-align: right;">4</td>
+<td>No; cache query results</td>
+<td style="text-align: right;">$4.840</td>
+</tr>
+<tr>
+<td style="text-align: right;">5</td>
+<td>Gated encoder sample comparison/adaptation → frozen or fitted checkpoint</td>
+<td>Training/Processing g5.xlarge ×1</td>
+<td>≤14GiB host</td>
+<td style="text-align: right;">4</td>
+<td>Training only if resumable; model/optimizer state</td>
+<td style="text-align: right;">$5.632</td>
+</tr>
+<tr>
+<td style="text-align: right;">6</td>
+<td>Gated11.73M records → FP16 embeddings</td>
+<td>Processing g5.xlarge ×1</td>
+<td>≤14GiB host</td>
+<td style="text-align: right;">6</td>
+<td>On-Demand; completed embedding shards</td>
+<td style="text-align: right;">$8.448</td>
+</tr>
+<tr>
+<td style="text-align: right;">7</td>
+<td>Gated embeddings → ANN/rescue queries + fold-safe fusion/compressor update</td>
+<td>Processing r5.4xlarge ×1</td>
+<td>≤100GiB</td>
+<td style="text-align: right;">4</td>
+<td>No; index/query shards</td>
+<td style="text-align: right;">$4.840</td>
+</tr>
+<tr>
+<td style="text-align: right;">8</td>
+<td>1.73M references + selected indices → compressed candidates plus audited overflow</td>
+<td>Processing r5.4xlarge ×1</td>
+<td>≤100GiB</td>
+<td style="text-align: right;">8</td>
+<td>No; reference shards</td>
+<td style="text-align: right;">$9.680</td>
+</tr>
+<tr>
+<td style="text-align: right;">9</td>
+<td>Labeled/validation candidates → reusable feature shards</td>
+<td>Processing c5.4xlarge ×1</td>
+<td>≤24GiB</td>
+<td style="text-align: right;">2 of12</td>
+<td>No; feature shards</td>
+<td style="text-align: right;">$1.632</td>
+</tr>
+<tr>
+<td style="text-align: right;">10</td>
+<td>Labeled features → provisional tree for mining</td>
+<td>Training c5.4xlarge ×1</td>
+<td>≤28GiB</td>
+<td style="text-align: right;">1</td>
+<td>Short fits; save model</td>
+<td style="text-align: right;">$.816</td>
+</tr>
+<tr>
+<td style="text-align: right;">11</td>
+<td>Cached train-fold candidates/scores → hard-negative refresh and features</td>
+<td>Processing c5.4xlarge ×1</td>
+<td>≤24GiB</td>
+<td style="text-align: right;">4</td>
+<td>No; sampled negative IDs</td>
+<td style="text-align: right;">$3.264</td>
+</tr>
+<tr>
+<td style="text-align: right;">12</td>
+<td>Labeled features → selected tree, five-fold OOF predictions, final fit</td>
+<td>Training c5.4xlarge ×1</td>
+<td>≤28GiB</td>
+<td style="text-align: right;">7</td>
+<td>Possible but short fits; completed fold artifacts</td>
+<td style="text-align: right;">$5.712</td>
+</tr>
+<tr>
+<td style="text-align: right;">13</td>
+<td>Train-fold hard pairs → fitted reranker; untouched held-out pairs → scores</td>
+<td>Training/Processing g5.xlarge ×1</td>
+<td>≤14GiB host</td>
+<td style="text-align: right;">2</td>
+<td>Training only if resumable; model state</td>
+<td style="text-align: right;">$2.816</td>
+</tr>
+<tr>
+<td style="text-align: right;">14</td>
+<td>OOF scores → calibration/singleton/policy; fold evaluation</td>
+<td>Processing c5.4xlarge ×1</td>
+<td>&lt;8GiB</td>
+<td style="text-align: right;">1.5</td>
+<td>No; small versioned artifacts</td>
+<td style="text-align: right;">$1.224</td>
+</tr>
+<tr>
+<td style="text-align: right;">15</td>
+<td>Remaining candidate features → final tree scores</td>
+<td>Processing c5.4xlarge ×1</td>
+<td>≤24GiB</td>
+<td style="text-align: right;">10 of12</td>
+<td>No; feature/prediction shards</td>
+<td style="text-align: right;">$8.160</td>
+</tr>
+<tr>
+<td style="text-align: right;">16</td>
+<td>Gated final hard subset → cross-encoder scores</td>
+<td>Processing g5.xlarge ×1</td>
+<td>≤14GiB host</td>
+<td style="text-align: right;">2</td>
+<td>No; pair-shard progress</td>
+<td style="text-align: right;">$2.816</td>
+</tr>
+<tr>
+<td style="text-align: right;">17</td>
+<td>Final scores → calibrated probabilities, match sets and audit</td>
+<td>Processing c5.4xlarge ×1</td>
+<td>&lt;8GiB</td>
+<td style="text-align: right;">.5</td>
+<td>No; atomic final manifest</td>
+<td style="text-align: right;">$.408</td>
+</tr>
+<tr>
+<td style="text-align: right;"></td>
+<td><strong>First research + first complete execution</strong></td>
+<td></td>
+<td></td>
+<td style="text-align: right;"><strong>76</strong></td>
+<td></td>
+<td style="text-align: right;"><strong>$78.972</strong></td>
+</tr>
+</tbody>
+</table>
+<p>Rows5–7 are optional dense work. Rows13 and16 separate reranker research from final application. Row14 fits the locked policy before row17 applies it. In implementation, preserve these artifact dependencies and never tune on final prediction outcomes. Startup overhead across split jobs must fit the ledger.</p>
+<p>Rows4/7 tune compression using training-fold labels; row8 applies the locked compressor.
+The100–200-proposal union entails173–346M cheap proposal evaluations. The8h retrieval/compression envelope therefore also requires approximately6000–12000 cheap evaluations/s, alongside index querying; measure both. If a fixed rule compressor is selected instead, its configuration is still locked inside validation.</p>
+<p>The12 feature hours cover reusable labeled shards plus remaining final shards; do not recompute identical features unnecessarily. Candidate volume69.2M corresponds to exactly40 per reference; audited overflow increases actual volume. Use measured M in runtime forecasts.</p>
+<p><strong>Required throughput to fit the nominal envelopes:</strong> normalize26.4M in8h≈917records/s; retrieve1.73M in8h≈60references/s; compute69.2M full feature rows over12h≈1602pairs/s; encode11.73M in6h≈543records/s. Finalization and IO must fit these end-to-end rates. With expensive fuzzy features on all pairs, Python implementations can miss them badly; use compiled kernels, feature-family pruning and cached fields. If a gate fails, remove optional neural experiments or revise the architecture transparently rather than hiding a recall reduction.</p>
+<h3 id="101-complete-rerun-reservation-allocation-table-dependencies-follow-the-runbook">10.1 Complete rerun reservation (allocation table; dependencies follow the runbook)</h3>
+<p>The second run rebuilds artifacts from raw data using the selected configuration. It repeats final-model fitting and scoring, not every discarded experiment.</p>
+<table>
+<thead>
+<tr>
+<th>Rerun job</th>
+<th>Instance</th>
+<th style="text-align: right;">Hours</th>
+<th style="text-align: right;">Cost</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Normalize raw</td>
+<td>c5.4xlarge</td>
+<td style="text-align: right;">8</td>
+<td style="text-align: right;">$6.528</td>
+</tr>
+<tr>
+<td>Rebuild sparse indices</td>
+<td>r5.4xlarge</td>
+<td style="text-align: right;">6</td>
+<td style="text-align: right;">$7.260</td>
+</tr>
+<tr>
+<td>Re-embed required records if dense adopted</td>
+<td>g5.xlarge</td>
+<td style="text-align: right;">6</td>
+<td style="text-align: right;">$8.448</td>
+</tr>
+<tr>
+<td>Rebuild/query ANN if adopted</td>
+<td>r5.4xlarge</td>
+<td style="text-align: right;">4</td>
+<td style="text-align: right;">$4.840</td>
+</tr>
+<tr>
+<td>Retrieve final candidates</td>
+<td>r5.4xlarge</td>
+<td style="text-align: right;">8</td>
+<td style="text-align: right;">$9.680</td>
+</tr>
+<tr>
+<td>Recompute features and score</td>
+<td>c5.4xlarge</td>
+<td style="text-align: right;">12</td>
+<td style="text-align: right;">$9.792</td>
+</tr>
+<tr>
+<td>Refit selected tree</td>
+<td>c5.4xlarge</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">$1.632</td>
+</tr>
+<tr>
+<td>Calibration/set policy/finalization</td>
+<td>c5.4xlarge</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">$.816</td>
+</tr>
+<tr>
+<td>Targeted cross-encoder inference if adopted</td>
+<td>g5.xlarge</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">$2.816</td>
+</tr>
+<tr>
+<td>Selected encoder refit if adopted and measured within1h</td>
+<td>g5.xlarge</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">$1.408</td>
+</tr>
+<tr>
+<td>Selected cross-encoder refit if adopted and measured within1h</td>
+<td>g5.xlarge</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">$1.408</td>
+</tr>
+<tr>
+<td><strong>Planned rerun compute including these optional refits</strong></td>
+<td></td>
+<td style="text-align: right;"><strong>51</strong></td>
+<td style="text-align: right;"><strong>$54.628</strong></td>
+</tr>
+<tr>
+<td><strong>Ring-fenced allowance</strong></td>
+<td></td>
+<td style="text-align: right;"></td>
+<td style="text-align: right;"><strong>$55.000</strong></td>
+</tr>
+</tbody>
+</table>
+<p>Rerun job ordering follows model/artifact dependencies as above; feature production can precede training, but model scoring follows fitting. The $51.812 data-pipeline rerun can reuse chosen neural weights; the two additional refit hours raise it to $54.628 within the $55 reservation. Admit those refits only after profiling; if they need longer, transfer money from optional research before launch. Repeating all discarded experiments or all five neural folds is beyond this rerun definition. A full sparse-only rerun is cheaper.</p>
+<h3 id="102-budget-ledger">10.2 Budget ledger</h3>
+<table>
+<thead>
+<tr>
+<th>Workstream</th>
+<th style="text-align: right;">Planned allocation</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Pilot / data and throughput audit</td>
+<td style="text-align: right;">$4.896</td>
+<td>Includes local-to-cloud readiness checks</td>
+</tr>
+<tr>
+<td>Normalization + index construction</td>
+<td style="text-align: right;">$13.788</td>
+<td>26.4M normalize;10M sparse index</td>
+</tr>
+<tr>
+<td>Sparse experiments</td>
+<td style="text-align: right;">$4.840</td>
+<td>Reuse retrieval artifacts</td>
+</tr>
+<tr>
+<td>Bi-encoder comparison + full embeddings + ANN</td>
+<td style="text-align: right;">$18.920</td>
+<td>Gated; may remain unspent</td>
+</tr>
+<tr>
+<td>Hard-negative mining</td>
+<td style="text-align: right;">$3.264</td>
+<td>One sampled refresh</td>
+</tr>
+<tr>
+<td>Tree models</td>
+<td style="text-align: right;">$6.528</td>
+<td>Winner-focused five-fold work</td>
+</tr>
+<tr>
+<td>Cross-encoder experiment/selected scoring</td>
+<td style="text-align: right;">$5.632</td>
+<td>Gated capped pool</td>
+</tr>
+<tr>
+<td>Full candidate retrieval + pair features/scoring</td>
+<td style="text-align: right;">$19.472</td>
+<td>Shared labeled/final feature budget</td>
+</tr>
+<tr>
+<td>Calibration/singleton/set evaluation</td>
+<td style="text-align: right;">$1.632</td>
+<td>CPU</td>
+</tr>
+<tr>
+<td>Full end-to-end rerun</td>
+<td style="text-align: right;">$55.000</td>
+<td>Protected before optional work</td>
+</tr>
+<tr>
+<td>Validation reruns/additional OOF checks</td>
+<td style="text-align: right;">$20.000</td>
+<td>Cannot imply free neural fold recomputation</td>
+</tr>
+<tr>
+<td>S3/EBS/requests/images/logs</td>
+<td style="text-align: right;">$20.000</td>
+<td>Measure actual GB-days</td>
+</tr>
+<tr>
+<td>Emergency reserve</td>
+<td style="text-align: right;">$25.000</td>
+<td>12.5% of credits</td>
+</tr>
+<tr>
+<td><strong>Total planned ceiling</strong></td>
+<td style="text-align: right;"><strong>$198.972</strong></td>
+<td><strong>$1.028 unallocated</strong></td>
+</tr>
+</tbody>
+</table>
+<p>Maximum first-pass GPU time14h; rerun adds8h for inference plus up to2h selected neural refits, totaling24h before emergency allocation. CPU instance-hours:62 first pass +41 rerun +up to24.5 from a$20 c5 validation allowance≈127.5. These are instance-hours, not vCPU-hours. Sequential compute totals roughly six days including validation; actual elapsed time includes job startup, label review and queueing. No labeling labor or local-compute cost is included in SageMaker credits.</p>
+<h2 id="11-infrastructure-tiers-and-incremental-research-value">11. Infrastructure tiers and incremental research value</h2>
+<p>The labels below reproduce the requested tier names. Only the $200 tier is funded and recommended under the actual constraint.</p>
+<table>
+<thead>
+<tr>
+<th>Allocation</th>
+<th style="text-align: right;">“Conservative” optional extension</th>
+<th style="text-align: right;">“Recommended” optional extension</th>
+<th style="text-align: right;">Maximum within available credits</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Data/index/sparse research and first retrieval</td>
+<td style="text-align: right;">$100</td>
+<td style="text-align: right;">$110</td>
+<td style="text-align: right;">Included in$78.972 first run</td>
+</tr>
+<tr>
+<td>Feature/tree research and final scoring</td>
+<td style="text-align: right;">$65</td>
+<td style="text-align: right;">$70</td>
+<td style="text-align: right;">Included</td>
+</tr>
+<tr>
+<td>Dense/hard-negative research</td>
+<td style="text-align: right;">$20</td>
+<td style="text-align: right;">$130</td>
+<td style="text-align: right;">Included, gated</td>
+</tr>
+<tr>
+<td>Cross-encoder research</td>
+<td style="text-align: right;">$10</td>
+<td style="text-align: right;">$70</td>
+<td style="text-align: right;">Included, gated</td>
+</tr>
+<tr>
+<td>Validation / repeatability</td>
+<td style="text-align: right;">$35</td>
+<td style="text-align: right;">$65</td>
+<td style="text-align: right;">$20</td>
+</tr>
+<tr>
+<td>Complete final rerun</td>
+<td style="text-align: right;">$55</td>
+<td style="text-align: right;">$90</td>
+<td style="text-align: right;">$55</td>
+</tr>
+<tr>
+<td>Storage/operational allowance</td>
+<td style="text-align: right;">$25</td>
+<td style="text-align: right;">$35</td>
+<td style="text-align: right;">$20</td>
+</tr>
+<tr>
+<td>Emergency reserve</td>
+<td style="text-align: right;">$40</td>
+<td style="text-align: right;">$80</td>
+<td style="text-align: right;">$25</td>
+</tr>
+<tr>
+<td>First research/execution subtotal shown separately</td>
+<td style="text-align: right;">—</td>
+<td style="text-align: right;">—</td>
+<td style="text-align: right;">$78.972</td>
+</tr>
+<tr>
+<td><strong>Total</strong></td>
+<td style="text-align: right;"><strong>$350</strong></td>
+<td style="text-align: right;"><strong>$650</strong></td>
+<td style="text-align: right;"><strong>$198.972</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>$350 extension:</strong> concentrates extra spending on sparse field/normalization ablations, stronger labeling audits, repeated seeds and feature-model comparison; neural experiments remain limited. At current rates, the extra money buys research confidence and rerun tolerance rather than an inherently better architecture.</p>
+<p><strong>$650 extension:</strong> funds fold-safe learned dense retrievers, more than one hard-negative refresh, targeted multilingual/branch reranking and robust shift evaluations. It still does not justify global LLM inference, a full10M identity GNN or unvalidated transitive closure. The expected score increment is unknown until lower-tier gates pass.</p>
+<p><strong>$198.97 funded plan:</strong> gives the sparse/feature/singleton system a full execution path, permits a small dense/neural option, and protects a second run. The practical research objective is the best validated macro F0.5 achievable at this measured cost, not spending the entire allowance.</p>
+<h2 id="12-reproducibility-and-acceptance-criteria">12. Reproducibility and acceptance criteria</h2>
+<p>Deliver the chosen configuration only with:</p>
+<ul>
+<li>A data/schema/version manifest, paper-download manifest, current price snapshot and per-job ledger.</li>
+<li>All five outer-fold predictions, complete metric definitions and retrieval recall at every truncation stage.</li>
+<li>An explicit record of label completeness, singleton prevalence, branch ontology and unresolved adjudications.</li>
+<li>Candidate provenance, numeric/contact/geographic conflict explanations, and final reference-level match sets including empty rows.</li>
+<li>Model/calibrator/policy versions bound to the retriever/index version and selection rules.</li>
+<li>Actual measured throughput and spend replacing every NR/estimate, with at least one complete rerun demonstrated before declaring the empirical objective achieved.</li>
+</ul>
+<p>This report supplies the research design and costed execution plan. Achieved recall, macro F0.5, feature importance and statistical ablation gains remain open empirical questions; none is inferred from small benchmark pair-classification results.</p>
+</main><script type="module">
+import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.esm.min.mjs';
+mermaid.initialize({startOnLoad:true,securityLevel:'strict',theme:'neutral'});
+</script></body></html>

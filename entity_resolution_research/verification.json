@@ -1,0 +1,15 @@
+{
+  "pdf_count": 24,
+  "pdf_hashes_verified": true,
+  "sagemaker_rate_count": 18,
+  "prices_match_report": true,
+  "report_characters": 109051,
+  "report_sha256": "399ba1c74024ee493b333761e0dd9acf9d1d04e67fc26297f1ae2c2a141cc019",
+  "threshold_checks": "1000 generated cases compared with brute-force global-threshold enumeration; no dataset metrics measured",
+  "budget_checks": "78.972 first compute +55 rerun +20 validation +20 ancillary +25 reserve =198.972; rerun54.628",
+  "limitations": [
+    "No actual project data or labeled benchmark supplied",
+    "No SageMaker jobs launched",
+    "HTML math and Mermaid rendering require CDN access"
+  ]
+}

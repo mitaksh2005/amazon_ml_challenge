@@ -1,0 +1,181 @@
+{
+  "retrieved": "2026-09-25",
+  "papers": [
+    {
+      "file": "ditto_2020.pdf",
+      "url": "https://arxiv.org/pdf/2004.00584",
+      "status": "downloaded",
+      "bytes": 1056350,
+      "sha256": "fdd9451b0b60b76ea1e0f1690e9577070978ce62ce6409e65b5370d327159d24"
+    },
+    {
+      "file": "uniblocker_2024.pdf",
+      "url": "https://arxiv.org/pdf/2404.14831",
+      "status": "downloaded",
+      "bytes": 1061182,
+      "sha256": "44e7de1a646aeb300e4ee18e2c3529384d0dc9c32713418c504bb6d4466a35d3"
+    },
+    {
+      "file": "sc_block_2024.pdf",
+      "url": "https://2024.eswc-conferences.org/wp-content/uploads/2024/04/146640116.pdf",
+      "bytes": 358266,
+      "sha256": "9aeeca0836b39394c6872b55534885f0186d866093ad8b5046792e19b88ab56a",
+      "status": "downloaded"
+    },
+    {
+      "file": "sudowoodo_2023.pdf",
+      "url": "https://arxiv.org/pdf/2207.04122",
+      "status": "downloaded",
+      "bytes": 1317385,
+      "sha256": "7eb3ad606ba0e2e605cdc02fb875b8ff99571099f4c9d464e267c955be85fa21"
+    },
+    {
+      "file": "sparkly_2023.pdf",
+      "url": "https://pages.cs.wisc.edu/~anhai/papers1/sparkly-vldb2023.pdf",
+      "bytes": 1654194,
+      "sha256": "2cf02dd495148182b8ce6a0f64afc1ddb12bed6c1b67fcf3793d928de758108f",
+      "status": "downloaded"
+    },
+    {
+      "file": "deepblocker_2021.pdf",
+      "url": "https://vldb.org/pvldb/vol14/p2459-thirumuruganathan.pdf",
+      "bytes": 2546678,
+      "sha256": "fd1ee9e3d033eec67f737153f638107876effa1a1f91cd4ba266e516e96c0c35",
+      "status": "downloaded"
+    },
+    {
+      "file": "blocking_reproducibility_2024.pdf",
+      "url": "https://aclanthology.org/2024.naacl-long.483.pdf",
+      "bytes": 356308,
+      "sha256": "cdd89e9875c104c6b1853a471997d368df2c831ae0a0756597c9445ccda98ff2",
+      "status": "downloaded"
+    },
+    {
+      "file": "supcon_product_matching_2022.pdf",
+      "url": "https://arxiv.org/pdf/2202.02098",
+      "status": "downloaded",
+      "bytes": 503315,
+      "sha256": "990a08acc81e570d4c91442169e3bd1b8da1b04e500ef445ef9ced3b1f86bc91"
+    },
+    {
+      "file": "wdc_products_2024.pdf",
+      "url": "https://www.openproceedings.org/2024/conf/edbt/paper-14.pdf",
+      "status": "downloaded",
+      "bytes": 761548,
+      "sha256": "2c6251fa73377c0039e36482311896ad09a0b9c33b20ec506360aee32202b0c9"
+    },
+    {
+      "file": "attendem_2024.pdf",
+      "url": "https://dmas.lab.mcgill.ca/fung/pub/LFX24kbs_preprint.pdf",
+      "bytes": 391430,
+      "sha256": "7a9e4f7c7681ca404248dbf3244d0ad9d6c31f9496d69a8b77b24ea86dbe999a",
+      "status": "downloaded"
+    },
+    {
+      "file": "zeroer_2020.pdf",
+      "url": "https://chu-data-lab.github.io/downloads/ZeroER-SIGMOD2020.pdf",
+      "bytes": 1465798,
+      "sha256": "1e0bf505ade02a5479ed722384cfeb79a760d8209e2eb40a9bf526edbd2da9a4",
+      "status": "downloaded"
+    },
+    {
+      "file": "temperature_calibration_2017.pdf",
+      "url": "https://proceedings.mlr.press/v70/guo17a/guo17a.pdf",
+      "bytes": 828420,
+      "sha256": "df7c93f97204f8a3c2b10f6d5bf5265baac25f00c1ae3b473a3e1dbc102dacb2",
+      "status": "downloaded"
+    },
+    {
+      "file": "beta_calibration_2017.pdf",
+      "url": "https://proceedings.mlr.press/v54/kull17a/kull17a.pdf",
+      "bytes": 389366,
+      "sha256": "3d3de5ee33d442c415c689c59b490ef09f310dc0c0e4bde47fb92a8c6f5f0e1a",
+      "status": "downloaded"
+    },
+    {
+      "file": "f_measure_maximization_2011.pdf",
+      "url": "https://www.weiweicheng.com/research/papers/cheng-nips11.pdf",
+      "bytes": 207215,
+      "sha256": "1e80c4d40c5dd9371bb4bb79a15f35f79915d33e3d43e6a3d993ff572e42515f",
+      "status": "downloaded"
+    },
+    {
+      "file": "string_metrics_2003.pdf",
+      "url": "https://www.cs.utexas.edu/~ai-lab/pubs/ijcai03.pdf",
+      "bytes": 427615,
+      "sha256": "3a1735cc9d325993874cf859a68b1061c7b08c63a0c05126a3236896e2cdb00a",
+      "status": "downloaded"
+    },
+    {
+      "file": "fellegi_sunter_1969.pdf",
+      "url": "https://nhis.ipums.org/nhis/resources/Fellegi69.pdf",
+      "bytes": 2705571,
+      "sha256": "77262e3c19b5a5afa1d4753e4cb1dd24bac16dbc9af396baa78b61ca2220b4b0",
+      "status": "downloaded"
+    },
+    {
+      "file": "faiss_gpu_2017.pdf",
+      "url": "https://arxiv.org/pdf/1702.08734",
+      "status": "downloaded",
+      "bytes": 1233821,
+      "sha256": "89b2371b261846059d416bdf1423b15a6e3cc7d1b2d5dc2729ee5f6c3399049a"
+    },
+    {
+      "file": "hnsw_2016.pdf",
+      "url": "https://arxiv.org/pdf/1603.09320",
+      "status": "downloaded",
+      "bytes": 2636958,
+      "sha256": "f78da128a3ea9ac08d37cfe6c4b641f371f88adb677d6d2bf637d90bad8d414a"
+    },
+    {
+      "file": "scann_2020.pdf",
+      "url": "https://proceedings.mlr.press/v119/guo20h/guo20h.pdf",
+      "bytes": 617950,
+      "sha256": "d4b970b547e0eba07fdd257bf1117d888013448b67658d3583de2fdd76b8349c",
+      "status": "downloaded"
+    },
+    {
+      "file": "faiss_library_2024.pdf",
+      "url": "https://arxiv.org/pdf/2401.08281",
+      "status": "downloaded",
+      "bytes": 1519889,
+      "sha256": "05ba27c5898d7f882f6e021d18623bd4a670bc525c3370f80ef5ae303b11bc3b"
+    },
+    {
+      "file": "embedding_er_analysis_2023.pdf",
+      "url": "https://arxiv.org/pdf/2304.12329",
+      "status": "downloaded",
+      "bytes": 3243187,
+      "sha256": "7ca1f3815641ef0a35d41ea90e80b483d2992104355858da6b6ddd3a087faea7"
+    },
+    {
+      "file": "beyond_scale_2026.pdf",
+      "url": "https://arxiv.org/pdf/2607.24688",
+      "status": "downloaded",
+      "bytes": 763808,
+      "sha256": "0ec19964a759338df2378c9a67b05f2b5e3a845bf24aac275feeb887b0a5e0d2"
+    },
+    {
+      "file": "er_practice_2026.pdf",
+      "url": "https://arxiv.org/pdf/2607.26298",
+      "status": "downloaded",
+      "bytes": 260130,
+      "sha256": "1fc1f4b0c0504b76116eb9a7667a5afe3222ebbfd9c0afda293ba454127a266f"
+    },
+    {
+      "file": "correlation_clustering_2004.pdf",
+      "url": "https://www.cs.cmu.edu/~shuchi/papers/clusteringfull.pdf",
+      "status": "downloaded",
+      "bytes": 228419,
+      "sha256": "89e8b92c920d38fd660c053d23fc171fc8b68f3e854603a5eee9ae50c6e6471d"
+    }
+  ],
+  "access_limitations": [
+    {
+      "title": "Entity Resolution with Hierarchical Graph Attention Networks",
+      "doi": "10.1145/3514221.3517872",
+      "status": "Full author-uploaded text read; PDF download unavailable",
+      "full_text_url": "https://www.researchgate.net/publication/361246442_Entity_Resolution_with_Hierarchical_Graph_Attention_Networks"
+    }
+  ]
+}

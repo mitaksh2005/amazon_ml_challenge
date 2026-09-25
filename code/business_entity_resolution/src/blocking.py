@@ -18,6 +18,7 @@ handled like any other label.
 from __future__ import annotations
 
 import json
+import os
 import re
 import time
 from functools import lru_cache
@@ -28,6 +29,7 @@ import numpy as np
 import pandas as pd
 import pyarrow.parquet as pq
 import scipy.sparse as sp
+from sparse_dot_topn import sp_matmul_topn
 
 KEY_BITS = 24
 N_BUCKETS = 1 << KEY_BITS
@@ -269,21 +271,13 @@ def to_matrix(kc: KeyChunk, rows: np.ndarray, p: Pass, idf: np.ndarray,
     return sp.csr_matrix((w.astype(np.float32), (r, b)), shape=(len(rows), N_BUCKETS))
 
 
-def csr_topk(R: sp.csr_matrix, k: int, min_score: float = 0.0) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-    """Top-k entries (value >= min_score) of every row of a CSR matrix → (row, col, value),
-    rank-ordered within each row."""
-    rows = np.repeat(np.arange(R.shape[0], dtype=np.int64), np.diff(R.indptr))
-    cols, vals = R.indices, R.data
-    if min_score > 0:
-        m = vals >= min_score
-        rows, cols, vals = rows[m], cols[m], vals[m]
-    # one float sort instead of lexsort: row ascending, then value descending (values are in (0, 1])
-    order = np.argsort(rows + (1.0 - np.minimum(vals, 1.0)) * 0.999)
-    rows_o = rows[order]
-    starts = np.r_[0, np.flatnonzero(np.diff(rows_o)) + 1]
-    rank = np.arange(len(order)) - np.repeat(starts, np.diff(np.r_[starts, len(order)]))
-    keep = order[rank < k]
-    return rows[keep], cols[keep], vals[keep]
+def topk_product(Q: sp.csr_matrix, PT: sp.csr_matrix, k: int, min_score: float,
+                 n_threads: int) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Top-k entries (>= min_score) of every row of Q @ PT → (row, col, value), rank-ordered within
+    each row. sparse_dot_topn keeps only the top-k while multiplying, so the (huge) full product
+    is never materialised."""
+    R = sp_matmul_topn(Q, PT, top_n=k, threshold=min_score, sort=True, n_threads=n_threads)
+    return np.repeat(np.arange(R.shape[0], dtype=np.int64), np.diff(R.indptr)), R.indices, R.data
 
 
 @dataclass
@@ -305,7 +299,7 @@ class TopK:
         new_s = np.full((hi - lo, self.k), -1.0, np.float32)
         new_i = np.full((hi - lo, self.k), -1, np.int64)
         rr = rows + row_offset - lo
-        # rows arrive rank-ordered from csr_topk, so the rank is the position within the row's run
+        # rows arrive rank-ordered from topk_product, so the rank is the position within the row's run
         starts = np.r_[0, np.flatnonzero(np.diff(rr)) + 1]
         rank = np.arange(len(rr)) - np.repeat(starts, np.diff(np.r_[starts, len(rr)]))
         new_s[rr, rank] = vals
@@ -318,12 +312,15 @@ class TopK:
 
 
 def retrieve(query: list[Path], query_rows: dict[str, np.ndarray] | None, pool: list[Path],
-             stats: PoolStats, passes: list[Pass], q_step: int = 20_000,
+             stats: PoolStats, passes: list[Pass], n_threads: int | None = None,
              log=print) -> pd.DataFrame:
     """Run every pass. Returns candidate pairs (q, p, score, pass) with global row indices:
     q indexes the concatenated query chunks, p the concatenated pool chunks.
 
-    query_rows optionally restricts the query to a subset: {chunk path name: row indices}."""
+    query_rows optionally restricts the query to a subset: {chunk path name: row indices}.
+    Each pool chunk is loaded once and serves all passes."""
+    t0 = time.time()
+    n_threads = n_threads or os.cpu_count() or 1
     q_chunks = [load_chunk(p) for p in query]
     q_off = np.r_[0, np.cumsum([c.n for c in q_chunks])]
     n_q = int(q_off[-1])
@@ -335,51 +332,72 @@ def retrieve(query: list[Path], query_rows: dict[str, np.ndarray] | None, pool: 
         for j, p in enumerate(query):
             q_sel[q_off[j] + query_rows.get(p.name, np.zeros(0, np.int64))] = True
     countries = [c for c in np.unique(q_country[q_sel]) if c in stats.df]
-    out = []
+    idf = {c: stats.idf(c) for c in countries}
+
+    # query matrices per (pass, country), rows in global query order
+    Q, Q_rows, tops = {}, {}, {}
     for ps in passes:
-        t0 = time.time()
-        idf = {c: stats.idf(c) for c in countries}
-        stop = {c: stats.df[c] > ps.cap for c in countries}
-        # query matrices per country (global query rows, in order)
-        Q, Q_rows = {}, {}
         for c in countries:
+            stop = stats.df[c] > ps.cap
             mats, rows_g = [], []
             for j, kc in enumerate(q_chunks):
                 rows = np.flatnonzero((kc.country == c) & q_sel[q_off[j]:q_off[j + 1]])
                 if len(rows):
-                    mats.append(to_matrix(kc, rows, ps, idf[c], stop[c]))
+                    mats.append(to_matrix(kc, rows, ps, idf[c], stop))
                     rows_g.append(rows + q_off[j])
-            Q[c], Q_rows[c] = sp.vstack(mats).tocsr(), np.concatenate(rows_g)
-        tops = {c: TopK(ps.k, Q[c].shape[0]) for c in countries}
-        p_off = 0
-        for pi, path in enumerate(pool):
-            kc = load_chunk(path)
-            for c in countries:
-                rows = np.flatnonzero(kc.country == c)
-                if not len(rows):
-                    continue
-                PT = to_matrix(kc, rows, ps, idf[c]).T.tocsr()
-                for q0 in range(0, Q[c].shape[0], q_step):
-                    r, col, v = csr_topk(Q[c][q0:q0 + q_step] @ PT, ps.k, ps.min_score)
-                    tops[c].merge(r, rows[col], v, q0, p_off)
-            p_off += kc.n
+            if mats:
+                Q[ps.name, c], Q_rows[ps.name, c] = sp.vstack(mats).tocsr(), np.concatenate(rows_g)
+                tops[ps.name, c] = TopK(ps.k, Q[ps.name, c].shape[0])
+
+    p_off = 0
+    for path in pool:
+        kc = load_chunk(path)
         for c in countries:
-            t = tops[c]
-            qq = np.repeat(Q_rows[c], ps.k)
-            m = t.idx.ravel() >= 0
-            out.append(pd.DataFrame({"q": qq[m], "p": t.idx.ravel()[m], "score": t.score.ravel()[m],
-                                     "pass": ps.name}))
-        log(f"pass {ps.name}: {time.time() - t0:.0f}s")
+            rows = np.flatnonzero(kc.country == c)
+            if not len(rows):
+                continue
+            for ps in passes:
+                if (ps.name, c) not in Q:
+                    continue
+                q_mat, top = Q[ps.name, c], tops[ps.name, c]
+                PT = to_matrix(kc, rows, ps, idf[c]).T.tocsr()
+                r, col, v = topk_product(q_mat, PT, ps.k, ps.min_score, n_threads)
+                top.merge(r, rows[col], v, 0, p_off)
+        p_off += kc.n
+
+    out = []
+    for (name, c), t in tops.items():
+        qq = np.repeat(Q_rows[name, c], t.k)
+        m = t.idx.ravel() >= 0
+        out.append(pd.DataFrame({"q": qq[m], "p": t.idx.ravel()[m], "score": t.score.ravel()[m], "pass": name}))
     cand = pd.concat(out, ignore_index=True)
-    cand["pass"] = cand["pass"].astype("category")
+    cand["pass"] = pd.Categorical(cand["pass"], categories=[ps.name for ps in passes])
+    log(f"retrieved {len(cand):,} (query, candidate, pass) rows for {q_sel.sum():,} queries in {time.time() - t0:.0f}s")
     return cand
 
 
 def union(cand: pd.DataFrame) -> pd.DataFrame:
-    """One row per (q, p) with the best score and the passes that found it."""
-    g = cand.groupby(["q", "p"], sort=False)
-    return pd.DataFrame({"score": g.score.max(), "passes": g["pass"].agg(lambda s: "+".join(sorted(set(s))))}) \
-        .reset_index()
+    """One row per (q, p): best score overall, plus score and rank (1 = best) from every pass that
+    found the pair (NaN otherwise) and a `passes` label such as "addr+all"."""
+    names = list(cand["pass"].cat.categories)
+    c = cand.sort_values(["pass", "q", "score"], ascending=[True, True, False], ignore_index=True)
+    rank = (c.groupby(["pass", "q"], observed=True, sort=False).cumcount() + 1).to_numpy(np.float32)
+    code = c["pass"].cat.codes.to_numpy()
+    cols = {}
+    for i, n in enumerate(names):
+        m = code == i
+        cols[f"score_{n}"] = np.where(m, c.score.to_numpy(), np.nan).astype(np.float32)
+        cols[f"rank_{n}"] = np.where(m, rank, np.nan).astype(np.float32)
+    # a pair appears at most once per pass, so max() just collapses the per-pass rows
+    wide = pd.DataFrame({"q": c.q.to_numpy(), "p": c.p.to_numpy(), **cols}).groupby(["q", "p"], sort=True).max()
+    wide["score"] = wide[[f"score_{n}" for n in names]].max(axis=1)
+    found = [wide[f"score_{n}"].notna().to_numpy() for n in names]
+    label = np.full(len(wide), "", dtype=object)
+    for n, f in sorted(zip(names, found)):
+        label = np.where(f, np.where(label == "", n, label + "+" + n), label)
+    wide["passes"] = label
+    return wide.reset_index()[["q", "p", "score", "passes", *[f"score_{n}" for n in names],
+                               *[f"rank_{n}" for n in names]]]
 
 
 def chunk_ids(paths: list[Path]) -> np.ndarray:
@@ -425,3 +443,85 @@ def write_candidates(path: Path, s1_ids: np.ndarray, pool_ids: np.ndarray, cand:
     col[lists.index] = lists.to_numpy()
     pd.DataFrame({"source1_entity_id": s1_ids.astype(str), "candidate_entity_ids": col.to_numpy()}) \
         .to_csv(path, sep="\t", index=False)
+
+
+# ---- full-split driver ---------------------------------------------------------------------------
+W_NAME = {"name": 1.0, "phon": 0.5, "join": 1.0, "nreg": 1.0, "init": 0.3}
+W_ADDR = {"addr": 1.0, "anum": 0.5, "house": 1.0}
+W_ALL = {**W_NAME, **W_ADDR}
+# Chosen in notebooks/02_blocking.ipynb (train validation: ~96% pair recall, F0.5 ceiling ~0.986, ~27 cands/S1)
+FINAL_PASSES = [Pass("all", W_ALL, k=20, cap=2000), Pass("name", W_NAME, k=10, cap=2000),
+                Pass("addr", W_ADDR, k=10, cap=2000)]
+
+
+def encode_ids(ids) -> np.ndarray:
+    """'S2-123456789' → 2_0123456789 as int64 (source digit × 10^10 + number): compact join keys."""
+    s = pd.Series(np.asarray(ids).astype(str))
+    return s.str[1].astype(np.int64).to_numpy() * 10**10 + s.str[3:].astype(np.int64).to_numpy()
+
+
+def generate_candidates(query: list[Path], pool: list[Path], stats: PoolStats, out_dir: Path,
+                        passes: list[Pass] = FINAL_PASSES, truth: pd.DataFrame | None = None,
+                        tsv_path: Path | None = None, batch_chunks: int = 2, log=print) -> pd.DataFrame:
+    """Candidates for every query record, in batches of `batch_chunks` query chunks (bounded memory).
+
+    Writes `out_dir/part-XXX.parquet` with columns s1_entity_id, cand_entity_id, score, passes,
+    score_<pass>, rank_<pass> (+ label when `truth` is given), and optionally the submission-format
+    candidate_pairs.tsv. `truth` is a frame of encoded (s1, cand) int64 true pairs.
+
+    Returns one row per query record: s1_entity_id, n_candidates, n_true, n_found (the last two only
+    with truth) for computing blocking metrics."""
+    out_dir.mkdir(parents=True, exist_ok=True)
+    pool_ids = chunk_ids(pool)
+    per_q = []
+    tsv = open(tsv_path, "w") if tsv_path else None
+    if tsv:
+        tsv.write("source1_entity_id\tcandidate_entity_ids\n")
+    try:
+        for b in range(0, len(query), batch_chunks):
+            batch = query[b:b + batch_chunks]
+            t0 = time.time()
+            u = union(retrieve(batch, None, pool, stats, passes, log=log))
+            s1_ids = chunk_ids(batch)
+            u.insert(0, "s1_entity_id", s1_ids[u.q.to_numpy()].astype(str))
+            u.insert(1, "cand_entity_id", pool_ids[u.p.to_numpy()].astype(str))
+            q_stat = pd.DataFrame({"s1_entity_id": s1_ids.astype(str),
+                                   "n_candidates": np.bincount(u.q, minlength=len(s1_ids))})
+            if truth is not None:
+                s1_code, c_code = encode_ids(u.s1_entity_id), encode_ids(u.cand_entity_id)
+                t_b = truth[truth.s1.isin(encode_ids(s1_ids))]
+                key = pd.MultiIndex.from_arrays([t_b.s1, t_b.cand])
+                u["label"] = pd.MultiIndex.from_arrays([s1_code, c_code]).isin(key).astype(np.int8)
+                q_codes = pd.Series(np.arange(len(s1_ids)), index=encode_ids(s1_ids))
+                q_stat["n_true"] = np.bincount(q_codes[t_b.s1].to_numpy(), minlength=len(s1_ids))
+                q_stat["n_found"] = np.bincount(u.q[u.label == 1], minlength=len(s1_ids))
+            u.drop(columns=["q", "p"]).to_parquet(out_dir / f"part-{b // batch_chunks:03d}.parquet", index=False)
+            if tsv:
+                c = u.sort_values(["q", "score"], ascending=[True, False])
+                lists = c.groupby("q").cand_entity_id.agg(",".join).reindex(range(len(s1_ids)), fill_value="")
+                pd.DataFrame({"a": s1_ids.astype(str), "b": lists.to_numpy()}) \
+                    .to_csv(tsv, sep="\t", header=False, index=False)
+            per_q.append(q_stat)
+            log(f"batch {b // batch_chunks + 1}/{-(-len(query) // batch_chunks)}: {len(s1_ids):,} S1, "
+                f"{len(u):,} candidates, {time.time() - t0:.0f}s")
+            del u
+    finally:
+        if tsv:
+            tsv.close()
+    return pd.concat(per_q, ignore_index=True)
+
+
+def summarise(per_q: pd.DataFrame, n_pool: int) -> dict:
+    """Blocking metrics from generate_candidates' per-record table (needs truth for recall)."""
+    n = len(per_q)
+    out = {"n_s1": n, "n_candidates": int(per_q.n_candidates.sum()),
+           "cands_per_s1_mean": per_q.n_candidates.mean(),
+           "cands_per_s1_p95": float(per_q.n_candidates.quantile(0.95)),
+           "reduction_ratio": 1 - per_q.n_candidates.sum() / (n * n_pool)}
+    if "n_true" in per_q:
+        has = per_q.n_true > 0
+        rec = per_q.n_found[has] / per_q.n_true[has]
+        out |= {"pair_recall": per_q.n_found.sum() / per_q.n_true.sum(),
+                "entities_fully_covered": float((rec == 1).mean()),
+                "ceiling_f05": float((f_beta(np.ones(len(rec)), rec.to_numpy()).sum() + (~has).sum()) / n)}
+    return {k: (float(v) if isinstance(v, (np.floating, float)) else int(v)) for k, v in out.items()}

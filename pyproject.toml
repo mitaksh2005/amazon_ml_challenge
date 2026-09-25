@@ -11,9 +11,11 @@ dependencies = [
     "pyarrow>=25.0.1",
     "rapidfuzz>=3.14.6",
     "scipy>=1.18.1",
+    "sparse-dot-topn>=1.2.0",
 ]
 
 [dependency-groups]
 dev = [
     "ipykernel>=7.3.0",
+    "papermill>=2.7.0",
 ]

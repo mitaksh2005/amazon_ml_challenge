@@ -113,7 +113,7 @@ def record_keys(name_core: str, addr_norm: str, region: str) -> list[tuple[str, 
     house h|num|street house number + first street word
     """
     keys = set()
-    region = REGION_GROUP.get(region, region)
+    own_region, region = region, REGION_GROUP.get(region, region)
     toks = [name_token(t) for t in name_core.split() if len(t) >= 2 or t.isdigit()]
     for t in toks:
         keys.add(("n|" + t, FAM_ID["name"]))
@@ -135,7 +135,7 @@ def record_keys(name_core: str, addr_norm: str, region: str) -> list[tuple[str, 
     house = street = None
     for raw in addr_norm.replace(",", " ").split():
         for t in addr_tokens(raw):
-            if t in ADDR_GENERIC or t == region:
+            if t in ADDR_GENERIC or t == own_region or t == region:
                 continue
             is_num = t[0].isdigit()
             if is_num:

@@ -1,0 +1,1032 @@
+{
+  "retrieved_utc": "2026-09-25T17:38:25.557804+00:00",
+  "region": "us-east-1",
+  "services": {
+    "sagemaker": {
+      "source": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonSageMaker/current/us-east-1/index.json",
+      "publicationDate": "2026-09-25T17:05:59Z",
+      "version": "20260925170559",
+      "products": [
+        {
+          "sku": "H5PGQ5CQKFRVCK44",
+          "productFamily": "Storage",
+          "attributes": {
+            "servicecode": "AmazonSageMaker",
+            "location": "US East (N. Virginia)",
+            "locationType": "AWS Region",
+            "volumeType": "General Purpose-Processing",
+            "maxThroughputvolume": "160 MB/sec",
+            "usagetype": "USE1-Processing:VolumeUsage.gp2",
+            "operation": "CreateVolume-Gp2",
+            "platoclassificationtype": "Processing:VolumeUsage",
+            "regionCode": "us-east-1",
+            "servicename": "Amazon SageMaker"
+          },
+          "on_demand_terms": {
+            "H5PGQ5CQKFRVCK44.JRTCKXETXF": {
+              "offerTermCode": "JRTCKXETXF",
+              "sku": "H5PGQ5CQKFRVCK44",
+              "effectiveDate": "2026-09-01T00:00:00Z",
+              "priceDimensions": {
+                "H5PGQ5CQKFRVCK44.JRTCKXETXF.6YS6EN2CT7": {
+                  "rateCode": "H5PGQ5CQKFRVCK44.JRTCKXETXF.6YS6EN2CT7",
+                  "description": "$0.100 per GB-Mo of Processing ML storage",
+                  "beginRange": "0",
+                  "endRange": "Inf",
+                  "unit": "GB-Mo",
+                  "pricePerUnit": {
+                    "USD": "0.1000000000"
+                  },
+                  "appliesTo": []
+                }
+              },
+              "termAttributes": {}
+            }
+          }
+        },
+        {
+          "sku": "WYYJYG82J6UYSM9D",
+          "productFamily": "ML Instance",
+          "attributes": {
+            "servicecode": "AmazonSageMaker",
+            "location": "US East (N. Virginia)",
+            "locationType": "AWS Region",
+            "instanceType": "ml.m5.4xlarge-Training",
+            "currentGeneration": "Yes",
+            "clockSpeed": "3.1 GHz",
+            "memory": "64 GiB",
+            "storage": "EBS only",
+            "networkPerformance": "Up to 10 Gigabit",
+            "processorArchitecture": "64-bit",
+            "usagetype": "USE1-Train:ml.m5.4xlarge",
+            "operation": "RunInstance",
+            "component": "Training",
+            "computeType": "Standard Instances",
+            "gpu": "0",
+            "gpuMemory": "0",
+            "instanceName": "ml.m5.4xlarge",
+            "physicalCpu": "Intel Xeon Platinum 8175 (Skylake)",
+            "physicalGpu": "None",
+            "platoinstancename": "m5",
+            "platoinstancetype": "Training",
+            "regionCode": "us-east-1",
+            "servicename": "Amazon SageMaker",
+            "vCpu": "16"
+          },
+          "on_demand_terms": {
+            "WYYJYG82J6UYSM9D.JRTCKXETXF": {
+              "offerTermCode": "JRTCKXETXF",
+              "sku": "WYYJYG82J6UYSM9D",
+              "effectiveDate": "2026-09-01T00:00:00Z",
+              "priceDimensions": {
+                "WYYJYG82J6UYSM9D.JRTCKXETXF.6YS6EN2CT7": {
+                  "rateCode": "WYYJYG82J6UYSM9D.JRTCKXETXF.6YS6EN2CT7",
+                  "description": "$0.922 per Training ml.m5.4xlarge hour in US East (N. Virginia)",
+                  "beginRange": "0",
+                  "endRange": "Inf",
+                  "unit": "Hrs",
+                  "pricePerUnit": {
+                    "USD": "0.9220000000"
+                  },
+                  "appliesTo": []
+                }
+              },
+              "termAttributes": {}
+            }
+          }
+        },
+        {
+          "sku": "MV73EBT6QNMYSTDF",
+          "productFamily": "ML Instance",
+          "attributes": {
+            "servicecode": "AmazonSageMaker",
+            "location": "US East (N. Virginia)",
+            "locationType": "AWS Region",
+            "instanceType": "ml.g5.2xlarge-Training",
+            "currentGeneration": "Yes",
+            "memory": "32 GiB",
+            "networkPerformance": "N/A",
+            "usagetype": "USE1-Train:ml.g5.2xlarge",
+            "operation": "RunInstance",
+            "component": "Training",
+            "computeType": "Accelerated Computing Instances",
+            "gpu": "1",
+            "gpuMemory": "NA",
+            "instanceName": "ml.g5.2xlarge",
+            "physicalCpu": "N/A",
+            "physicalGpu": "N/A",
+            "platoinstancename": "g5",
+            "platoinstancetype": "Training",
+            "regionCode": "us-east-1",
+            "servicename": "Amazon SageMaker",
+            "vCpu": "8"
+          },
+          "on_demand_terms": {
+            "MV73EBT6QNMYSTDF.JRTCKXETXF": {
+              "offerTermCode": "JRTCKXETXF",
+              "sku": "MV73EBT6QNMYSTDF",
+              "effectiveDate": "2026-09-01T00:00:00Z",
+              "priceDimensions": {
+                "MV73EBT6QNMYSTDF.JRTCKXETXF.6YS6EN2CT7": {
+                  "rateCode": "MV73EBT6QNMYSTDF.JRTCKXETXF.6YS6EN2CT7",
+                  "description": "$1.515 per Training ml.g5.2xlarge hour in US East (N. Virginia)",
+                  "beginRange": "0",
+                  "endRange": "Inf",
+                  "unit": "Hrs",
+                  "pricePerUnit": {
+                    "USD": "1.5150000000"
+                  },
+                  "appliesTo": []
+                }
+              },
+              "termAttributes": {}
+            }
+          }
+        },
+        {
+          "sku": "WP4ANW2U4TUJ423F",
+          "productFamily": "ML Instance",
+          "attributes": {
+            "servicecode": "AmazonSageMaker",
+            "location": "US East (N. Virginia)",
+            "locationType": "AWS Region",
+            "instanceType": "ml.g4dn.xlarge-Processing",
+            "currentGeneration": "Yes",
+            "clockSpeed": "2.5 GHz",
+            "memory": "16 GiB",
+            "storage": "125 GB NVMe SSD",
+            "networkPerformance": "Up to 25 Gigabit",
+            "processorArchitecture": "64-bit",
+            "usagetype": "USE1-Processing:ml.g4dn.xlarge",
+            "operation": "RunInstance",
+            "component": "Processing",
+            "computeType": "Accelerated Computing Instances",
+            "gpu": "1",
+            "gpuMemory": "16",
+            "instanceName": "ml.g4dn.xlarge",
+            "physicalCpu": "Intel Xeon Family",
+            "physicalGpu": "NVIDIA T4 GPU",
+            "platoinstancename": "g4dn",
+            "platoinstancetype": "Processing",
+            "regionCode": "us-east-1",
+            "servicename": "Amazon SageMaker",
+            "vCpu": "4"
+          },
+          "on_demand_terms": {
+            "WP4ANW2U4TUJ423F.JRTCKXETXF": {
+              "offerTermCode": "JRTCKXETXF",
+              "sku": "WP4ANW2U4TUJ423F",
+              "effectiveDate": "2026-09-01T00:00:00Z",
+              "priceDimensions": {
+                "WP4ANW2U4TUJ423F.JRTCKXETXF.6YS6EN2CT7": {
+                  "rateCode": "WP4ANW2U4TUJ423F.JRTCKXETXF.6YS6EN2CT7",
+                  "description": "$0.736 per Processing ml.g4dn.xlarge hour in US East (N. Virginia)",
+                  "beginRange": "0",
+                  "endRange": "Inf",
+                  "unit": "Hrs",
+                  "pricePerUnit": {
+                    "USD": "0.7360000000"
+                  },
+                  "appliesTo": []
+                }
+              },
+              "termAttributes": {}
+            }
+          }
+        },
+        {
+          "sku": "AJTCQQAHVZ37MVVR",
+          "productFamily": "ML Instance",
+          "attributes": {
+            "servicecode": "AmazonSageMaker",
+            "location": "US East (N. Virginia)",
+            "locationType": "AWS Region",
+            "instanceType": "ml.c5.4xlarge-Processing",
+            "currentGeneration": "Yes",
+            "clockSpeed": "3 GHz",
+            "memory": "32 GiB",
+            "storage": "EBS only",
+            "networkPerformance": "Up to 10 Gigabit",
+            "processorArchitecture": "64-bit",
+            "usagetype": "USE1-Processing:ml.c5.4xlarge",
+            "operation": "RunInstance",
+            "component": "Processing",
+            "computeType": "Compute Optimized Instances",
+            "gpu": "0",
+            "gpuMemory": "0",
+            "instanceName": "ml.c5.4xlarge",
+            "physicalCpu": "Intel Xeon Platinum 8124M",
+            "physicalGpu": "None",
+            "platoinstancename": "c5",
+            "platoinstancetype": "Processing",
+            "regionCode": "us-east-1",
+            "servicename": "Amazon SageMaker",
+            "vCpu": "16"
+          },
+          "on_demand_terms": {
+            "AJTCQQAHVZ37MVVR.JRTCKXETXF": {
+              "offerTermCode": "JRTCKXETXF",
+              "sku": "AJTCQQAHVZ37MVVR",
+              "effectiveDate": "2026-09-01T00:00:00Z",
+              "priceDimensions": {
+                "AJTCQQAHVZ37MVVR.JRTCKXETXF.6YS6EN2CT7": {
+                  "rateCode": "AJTCQQAHVZ37MVVR.JRTCKXETXF.6YS6EN2CT7",
+                  "description": "$0.816 per Processing ml.c5.4xlarge hour in US East (N. Virginia)",
+                  "beginRange": "0",
+                  "endRange": "Inf",
+                  "unit": "Hrs",
+                  "pricePerUnit": {
+                    "USD": "0.8160000000"
+                  },
+                  "appliesTo": []
+                }
+              },
+              "termAttributes": {}
+            }
+          }
+        },
+        {
+          "sku": "TMG3P4UK9UAFNC44",
+          "productFamily": "ML Instance",
+          "attributes": {
+            "servicecode": "AmazonSageMaker",
+            "location": "US East (N. Virginia)",
+            "locationType": "AWS Region",
+            "instanceType": "ml.g5.2xlarge-Processing",
+            "currentGeneration": "Yes",
+            "memory": "32 GiB",
+            "storage": "1 x 450 GB NVMe SSD",
+            "networkPerformance": "Up to 10 Gigabit",
+            "usagetype": "USE1-Processing:ml.g5.2xlarge",
+            "operation": "RunInstance",
+            "component": "Processing",
+            "computeType": "Accelerated Computing Instances",
+            "gpu": "1",
+            "gpuMemory": "24 GiB",
+            "instanceName": "ml.g5.2xlarge",
+            "physicalCpu": "N/A",
+            "physicalGpu": "N/A",
+            "platoinstancename": "g5",
+            "platoinstancetype": "Processing",
+            "regionCode": "us-east-1",
+            "servicename": "Amazon SageMaker",
+            "vCpu": "8"
+          },
+          "on_demand_terms": {
+            "TMG3P4UK9UAFNC44.JRTCKXETXF": {
+              "offerTermCode": "JRTCKXETXF",
+              "sku": "TMG3P4UK9UAFNC44",
+              "effectiveDate": "2026-09-01T00:00:00Z",
+              "priceDimensions": {
+                "TMG3P4UK9UAFNC44.JRTCKXETXF.6YS6EN2CT7": {
+                  "rateCode": "TMG3P4UK9UAFNC44.JRTCKXETXF.6YS6EN2CT7",
+                  "description": "1.515 per Processing ml.g5.2xlarge hour in US East (N. Virginia)",
+                  "beginRange": "0",
+                  "endRange": "Inf",
+                  "unit": "Hrs",
+                  "pricePerUnit": {
+                    "USD": "1.5150000000"
+                  },
+                  "appliesTo": []
+                }
+              },
+              "termAttributes": {}
+            }
+          }
+        },
+        {
+          "sku": "4259UGG6AP4DF5JS",
+          "productFamily": "ML Instance",
+          "attributes": {
+            "servicecode": "AmazonSageMaker",
+            "location": "US East (N. Virginia)",
+            "locationType": "AWS Region",
+            "instanceType": "ml.c5.4xlarge-Training",
+            "currentGeneration": "Yes",
+            "clockSpeed": "3 GHz",
+            "memory": "32 GiB",
+            "storage": "EBS only",
+            "networkPerformance": "Up to 10 Gigabit",
+            "processorArchitecture": "64-bit",
+            "usagetype": "USE1-Train:ml.c5.4xlarge",
+            "operation": "RunInstance",
+            "component": "Training",
+            "computeType": "Compute Optimized Instances",
+            "gpu": "0",
+            "gpuMemory": "0",
+            "instanceName": "ml.c5.4xlarge",
+            "physicalCpu": "Intel Xeon Platinum 8124M",
+            "physicalGpu": "None",
+            "platoinstancename": "c5",
+            "platoinstancetype": "Training",
+            "regionCode": "us-east-1",
+            "servicename": "Amazon SageMaker",
+            "vCpu": "16"
+          },
+          "on_demand_terms": {
+            "4259UGG6AP4DF5JS.JRTCKXETXF": {
+              "offerTermCode": "JRTCKXETXF",
+              "sku": "4259UGG6AP4DF5JS",
+              "effectiveDate": "2026-09-01T00:00:00Z",
+              "priceDimensions": {
+                "4259UGG6AP4DF5JS.JRTCKXETXF.6YS6EN2CT7": {
+                  "rateCode": "4259UGG6AP4DF5JS.JRTCKXETXF.6YS6EN2CT7",
+                  "description": "$0.816 per Training ml.c5.4xlarge hour in US East (N. Virginia)",
+                  "beginRange": "0",
+                  "endRange": "Inf",
+                  "unit": "Hrs",
+                  "pricePerUnit": {
+                    "USD": "0.8160000000"
+                  },
+                  "appliesTo": []
+                }
+              },
+              "termAttributes": {}
+            }
+          }
+        },
+        {
+          "sku": "74GUJFY3X99E3FGR",
+          "productFamily": "ML Instance",
+          "attributes": {
+            "servicecode": "AmazonSageMaker",
+            "location": "US East (N. Virginia)",
+            "locationType": "AWS Region",
+            "instanceType": "ml.g4dn.xlarge-Training",
+            "currentGeneration": "Yes",
+            "clockSpeed": "2.5 GHz",
+            "memory": "16 GiB",
+            "storage": "125 GB NVMe SSD",
+            "networkPerformance": "Up to 25 Gigabit",
+            "processorArchitecture": "64-bit",
+            "usagetype": "USE1-Train:ml.g4dn.xlarge",
+            "operation": "RunInstance",
+            "component": "Training",
+            "computeType": "Accelerated Computing Instances",
+            "gpu": "1",
+            "gpuMemory": "0",
+            "instanceName": "ml.g4dn.xlarge",
+            "physicalCpu": "Intel Xeon Family",
+            "physicalGpu": "NVIDIA T4 GPU",
+            "platoinstancename": "g4dn",
+            "platoinstancetype": "Training",
+            "regionCode": "us-east-1",
+            "servicename": "Amazon SageMaker",
+            "vCpu": "4"
+          },
+          "on_demand_terms": {
+            "74GUJFY3X99E3FGR.JRTCKXETXF": {
+              "offerTermCode": "JRTCKXETXF",
+              "sku": "74GUJFY3X99E3FGR",
+              "effectiveDate": "2026-09-01T00:00:00Z",
+              "priceDimensions": {
+                "74GUJFY3X99E3FGR.JRTCKXETXF.6YS6EN2CT7": {
+                  "rateCode": "74GUJFY3X99E3FGR.JRTCKXETXF.6YS6EN2CT7",
+                  "description": "$0.736 for Training job ml.g4dn.xlarge per hour in US East (N. Virginia)",
+                  "beginRange": "0",
+                  "endRange": "Inf",
+                  "unit": "Hrs",
+                  "pricePerUnit": {
+                    "USD": "0.7360000000"
+                  },
+                  "appliesTo": []
+                }
+              },
+              "termAttributes": {}
+            }
+          }
+        },
+        {
+          "sku": "JJRPHASR7PJRGH74",
+          "productFamily": "ML Instance",
+          "attributes": {
+            "servicecode": "AmazonSageMaker",
+            "location": "US East (N. Virginia)",
+            "locationType": "AWS Region",
+            "instanceType": "ml.c5.9xlarge-Processing",
+            "currentGeneration": "Yes",
+            "clockSpeed": "3 GHz",
+            "memory": "72 GiB",
+            "storage": "EBS only",
+            "networkPerformance": "10 Gigabit",
+            "processorArchitecture": "64-bit",
+            "usagetype": "USE1-Processing:ml.c5.9xlarge",
+            "operation": "RunInstance",
+            "component": "Processing",
+            "computeType": "Compute Optimized Instances",
+            "gpu": "0",
+            "gpuMemory": "0",
+            "instanceName": "ml.c5.9xlarge",
+            "physicalCpu": "Intel Xeon Platinum 8124M",
+            "physicalGpu": "None",
+            "platoinstancename": "c5",
+            "platoinstancetype": "Processing",
+            "regionCode": "us-east-1",
+            "servicename": "Amazon SageMaker",
+            "vCpu": "36"
+          },
+          "on_demand_terms": {
+            "JJRPHASR7PJRGH74.JRTCKXETXF": {
+              "offerTermCode": "JRTCKXETXF",
+              "sku": "JJRPHASR7PJRGH74",
+              "effectiveDate": "2026-09-01T00:00:00Z",
+              "priceDimensions": {
+                "JJRPHASR7PJRGH74.JRTCKXETXF.6YS6EN2CT7": {
+                  "rateCode": "JJRPHASR7PJRGH74.JRTCKXETXF.6YS6EN2CT7",
+                  "description": "$1.836 per Processing ml.c5.9xlarge hour in US East (N. Virginia)",
+                  "beginRange": "0",
+                  "endRange": "Inf",
+                  "unit": "Hrs",
+                  "pricePerUnit": {
+                    "USD": "1.8360000000"
+                  },
+                  "appliesTo": []
+                }
+              },
+              "termAttributes": {}
+            }
+          }
+        },
+        {
+          "sku": "EWQJRZH3X48CQS2N",
+          "productFamily": "ML Instance",
+          "attributes": {
+            "servicecode": "AmazonSageMaker",
+            "location": "US East (N. Virginia)",
+            "locationType": "AWS Region",
+            "instanceType": "ml.r5.4xlarge-Training",
+            "currentGeneration": "Yes",
+            "clockSpeed": "3.1 GHz",
+            "memory": "128 GiB",
+            "storage": "EBS only",
+            "networkPerformance": "Up to 10 Gigabit",
+            "processorArchitecture": "64-bit",
+            "usagetype": "USE1-Train:ml.r5.4xlarge",
+            "operation": "RunInstance",
+            "component": "Training",
+            "computeType": "Memory Optimized Instances",
+            "gpu": "0",
+            "gpuMemory": "0",
+            "instanceName": "ml.r5.4xlarge",
+            "physicalCpu": "Intel Xeon Platinum 8175 (Skylake)",
+            "physicalGpu": "None",
+            "platoinstancename": "r5",
+            "platoinstancetype": "Training",
+            "regionCode": "us-east-1",
+            "servicename": "Amazon SageMaker",
+            "vCpu": "16"
+          },
+          "on_demand_terms": {
+            "EWQJRZH3X48CQS2N.JRTCKXETXF": {
+              "offerTermCode": "JRTCKXETXF",
+              "sku": "EWQJRZH3X48CQS2N",
+              "effectiveDate": "2026-09-01T00:00:00Z",
+              "priceDimensions": {
+                "EWQJRZH3X48CQS2N.JRTCKXETXF.6YS6EN2CT7": {
+                  "rateCode": "EWQJRZH3X48CQS2N.JRTCKXETXF.6YS6EN2CT7",
+                  "description": "1.21 per Training ml.r5.4xlarge hour in US East (N. Virginia)",
+                  "beginRange": "0",
+                  "endRange": "Inf",
+                  "unit": "Hrs",
+                  "pricePerUnit": {
+                    "USD": "1.2100000000"
+                  },
+                  "appliesTo": []
+                }
+              },
+              "termAttributes": {}
+            }
+          }
+        },
+        {
+          "sku": "Z6GVYQDJJEETJYXB",
+          "productFamily": "ML Instance",
+          "attributes": {
+            "servicecode": "AmazonSageMaker",
+            "location": "US East (N. Virginia)",
+            "locationType": "AWS Region",
+            "instanceType": "ml.r5.8xlarge-Processing",
+            "currentGeneration": "Yes",
+            "clockSpeed": "3.1 GHz",
+            "memory": "256 GiB",
+            "storage": "EBS only",
+            "networkPerformance": "10 Gigabit",
+            "processorArchitecture": "64-bit",
+            "usagetype": "USE1-Processing:ml.r5.8xlarge",
+            "operation": "RunInstance",
+            "component": "Processing",
+            "computeType": "Memory Optimized Instances",
+            "gpu": "0",
+            "gpuMemory": "0",
+            "instanceName": "ml.r5.8xlarge",
+            "physicalCpu": "Intel Xeon Platinum 8175 (Skylake)",
+            "physicalGpu": "None",
+            "platoinstancename": "r5",
+            "platoinstancetype": "Processing",
+            "regionCode": "us-east-1",
+            "servicename": "Amazon SageMaker",
+            "vCpu": "32"
+          },
+          "on_demand_terms": {
+            "Z6GVYQDJJEETJYXB.JRTCKXETXF": {
+              "offerTermCode": "JRTCKXETXF",
+              "sku": "Z6GVYQDJJEETJYXB",
+              "effectiveDate": "2026-09-01T00:00:00Z",
+              "priceDimensions": {
+                "Z6GVYQDJJEETJYXB.JRTCKXETXF.6YS6EN2CT7": {
+                  "rateCode": "Z6GVYQDJJEETJYXB.JRTCKXETXF.6YS6EN2CT7",
+                  "description": "$2.419 per Processing ml.r5.8xlarge hour in US East (N. Virginia)",
+                  "beginRange": "0",
+                  "endRange": "Inf",
+                  "unit": "Hrs",
+                  "pricePerUnit": {
+                    "USD": "2.4190000000"
+                  },
+                  "appliesTo": []
+                }
+              },
+              "termAttributes": {}
+            }
+          }
+        },
+        {
+          "sku": "TUXBAC2CXH9C2FAQ",
+          "productFamily": "ML Instance",
+          "attributes": {
+            "servicecode": "AmazonSageMaker",
+            "location": "US East (N. Virginia)",
+            "locationType": "AWS Region",
+            "instanceType": "ml.r5.8xlarge-Training",
+            "currentGeneration": "Yes",
+            "clockSpeed": "3.1 GHz",
+            "memory": "256 GiB",
+            "storage": "EBS only",
+            "networkPerformance": "10 Gigabit",
+            "processorArchitecture": "64-bit",
+            "usagetype": "USE1-Train:ml.r5.8xlarge",
+            "operation": "RunInstance",
+            "component": "Training",
+            "computeType": "Memory Optimized Instances",
+            "gpu": "0",
+            "gpuMemory": "0",
+            "instanceName": "ml.r5.8xlarge",
+            "physicalCpu": "Intel Xeon Platinum 8175 (Skylake)",
+            "physicalGpu": "None",
+            "platoinstancename": "r5",
+            "platoinstancetype": "Training",
+            "regionCode": "us-east-1",
+            "servicename": "Amazon SageMaker",
+            "vCpu": "32"
+          },
+          "on_demand_terms": {
+            "TUXBAC2CXH9C2FAQ.JRTCKXETXF": {
+              "offerTermCode": "JRTCKXETXF",
+              "sku": "TUXBAC2CXH9C2FAQ",
+              "effectiveDate": "2026-09-01T00:00:00Z",
+              "priceDimensions": {
+                "TUXBAC2CXH9C2FAQ.JRTCKXETXF.6YS6EN2CT7": {
+                  "rateCode": "TUXBAC2CXH9C2FAQ.JRTCKXETXF.6YS6EN2CT7",
+                  "description": "2.419 per Training ml.r5.8xlarge hour in US East (N. Virginia)",
+                  "beginRange": "0",
+                  "endRange": "Inf",
+                  "unit": "Hrs",
+                  "pricePerUnit": {
+                    "USD": "2.4190000000"
+                  },
+                  "appliesTo": []
+                }
+              },
+              "termAttributes": {}
+            }
+          }
+        },
+        {
+          "sku": "HVENMS6SVG8Y238H",
+          "productFamily": "ML Instance",
+          "attributes": {
+            "servicecode": "AmazonSageMaker",
+            "location": "US East (N. Virginia)",
+            "locationType": "AWS Region",
+            "instanceType": "ml.c5.9xlarge-Training",
+            "currentGeneration": "Yes",
+            "clockSpeed": "3 GHz",
+            "memory": "72 GiB",
+            "storage": "EBS only",
+            "networkPerformance": "10 Gigabit",
+            "processorArchitecture": "64-bit",
+            "usagetype": "USE1-Train:ml.c5.9xlarge",
+            "operation": "RunInstance",
+            "component": "Training",
+            "computeType": "Compute Optimized Instances",
+            "gpu": "0",
+            "gpuMemory": "0",
+            "instanceName": "ml.c5.9xlarge",
+            "physicalCpu": "Intel Xeon Platinum 8124M",
+            "physicalGpu": "None",
+            "platoinstancename": "c5",
+            "platoinstancetype": "Training",
+            "regionCode": "us-east-1",
+            "servicename": "Amazon SageMaker",
+            "vCpu": "36"
+          },
+          "on_demand_terms": {
+            "HVENMS6SVG8Y238H.JRTCKXETXF": {
+              "offerTermCode": "JRTCKXETXF",
+              "sku": "HVENMS6SVG8Y238H",
+              "effectiveDate": "2026-09-01T00:00:00Z",
+              "priceDimensions": {
+                "HVENMS6SVG8Y238H.JRTCKXETXF.6YS6EN2CT7": {
+                  "rateCode": "HVENMS6SVG8Y238H.JRTCKXETXF.6YS6EN2CT7",
+                  "description": "$1.836 per Training ml.c5.9xlarge hour in US East (N. Virginia)",
+                  "beginRange": "0",
+                  "endRange": "Inf",
+                  "unit": "Hrs",
+                  "pricePerUnit": {
+                    "USD": "1.8360000000"
+                  },
+                  "appliesTo": []
+                }
+              },
+              "termAttributes": {}
+            }
+          }
+        },
+        {
+          "sku": "T3ZEQBXYTMUJ9C47",
+          "productFamily": "ML Instance",
+          "attributes": {
+            "servicecode": "AmazonSageMaker",
+            "location": "US East (N. Virginia)",
+            "locationType": "AWS Region",
+            "instanceType": "ml.m5.4xlarge-Processing",
+            "currentGeneration": "Yes",
+            "clockSpeed": "3.1 GHz",
+            "memory": "64 GiB",
+            "storage": "EBS only",
+            "networkPerformance": "Up to 10 Gigabit",
+            "processorArchitecture": "64-bit",
+            "usagetype": "USE1-Processing:ml.m5.4xlarge",
+            "operation": "RunInstance",
+            "component": "Processing",
+            "computeType": "Standard Instances",
+            "gpu": "0",
+            "gpuMemory": "0",
+            "instanceName": "ml.m5.4xlarge",
+            "physicalCpu": "Intel Xeon Platinum 8175 (Skylake)",
+            "physicalGpu": "None",
+            "platoinstancename": "m5",
+            "platoinstancetype": "Processing",
+            "regionCode": "us-east-1",
+            "servicename": "Amazon SageMaker",
+            "vCpu": "16"
+          },
+          "on_demand_terms": {
+            "T3ZEQBXYTMUJ9C47.JRTCKXETXF": {
+              "offerTermCode": "JRTCKXETXF",
+              "sku": "T3ZEQBXYTMUJ9C47",
+              "effectiveDate": "2026-09-01T00:00:00Z",
+              "priceDimensions": {
+                "T3ZEQBXYTMUJ9C47.JRTCKXETXF.6YS6EN2CT7": {
+                  "rateCode": "T3ZEQBXYTMUJ9C47.JRTCKXETXF.6YS6EN2CT7",
+                  "description": "$0.922 per Processing ml.m5.4xlarge hour in US East (N. Virginia)",
+                  "beginRange": "0",
+                  "endRange": "Inf",
+                  "unit": "Hrs",
+                  "pricePerUnit": {
+                    "USD": "0.9220000000"
+                  },
+                  "appliesTo": []
+                }
+              },
+              "termAttributes": {}
+            }
+          }
+        },
+        {
+          "sku": "5SQ6HDMJ2VYK8B8Q",
+          "productFamily": "Storage",
+          "attributes": {
+            "servicecode": "AmazonSageMaker",
+            "location": "US East (N. Virginia)",
+            "locationType": "AWS Region",
+            "volumeType": "General Purpose-Training",
+            "maxThroughputvolume": "160 MB/sec",
+            "usagetype": "USE1-Train:VolumeUsage.gp2",
+            "operation": "CreateVolume-Gp2",
+            "platoclassificationtype": "Train:VolumeUsage",
+            "regionCode": "us-east-1",
+            "servicename": "Amazon SageMaker"
+          },
+          "on_demand_terms": {
+            "5SQ6HDMJ2VYK8B8Q.JRTCKXETXF": {
+              "offerTermCode": "JRTCKXETXF",
+              "sku": "5SQ6HDMJ2VYK8B8Q",
+              "effectiveDate": "2026-09-01T00:00:00Z",
+              "priceDimensions": {
+                "5SQ6HDMJ2VYK8B8Q.JRTCKXETXF.6YS6EN2CT7": {
+                  "rateCode": "5SQ6HDMJ2VYK8B8Q.JRTCKXETXF.6YS6EN2CT7",
+                  "description": "$0.14 per GB-Mo of Training Job ML storage",
+                  "beginRange": "0",
+                  "endRange": "Inf",
+                  "unit": "GB-Mo",
+                  "pricePerUnit": {
+                    "USD": "0.1400000000"
+                  },
+                  "appliesTo": []
+                }
+              },
+              "termAttributes": {}
+            }
+          }
+        },
+        {
+          "sku": "A763MDTT4Q4CD3EU",
+          "productFamily": "ML Instance",
+          "attributes": {
+            "servicecode": "AmazonSageMaker",
+            "location": "US East (N. Virginia)",
+            "locationType": "AWS Region",
+            "instanceType": "ml.g5.xlarge-Processing",
+            "currentGeneration": "Yes",
+            "memory": "16 GiB",
+            "storage": "1 x 250 GB NVMe SSD",
+            "networkPerformance": "Up to 10 Gigabit",
+            "usagetype": "USE1-Processing:ml.g5.xlarge",
+            "operation": "RunInstance",
+            "component": "Processing",
+            "computeType": "Accelerated Computing Instances",
+            "gpu": "1",
+            "gpuMemory": "24 GiB",
+            "instanceName": "ml.g5.xlarge",
+            "physicalCpu": "N/A",
+            "physicalGpu": "N/A",
+            "platoinstancename": "g5",
+            "platoinstancetype": "Processing",
+            "regionCode": "us-east-1",
+            "servicename": "Amazon SageMaker",
+            "vCpu": "4"
+          },
+          "on_demand_terms": {
+            "A763MDTT4Q4CD3EU.JRTCKXETXF": {
+              "offerTermCode": "JRTCKXETXF",
+              "sku": "A763MDTT4Q4CD3EU",
+              "effectiveDate": "2026-09-01T00:00:00Z",
+              "priceDimensions": {
+                "A763MDTT4Q4CD3EU.JRTCKXETXF.6YS6EN2CT7": {
+                  "rateCode": "A763MDTT4Q4CD3EU.JRTCKXETXF.6YS6EN2CT7",
+                  "description": "1.408 per Processing ml.g5.xlarge hour in US East (N. Virginia)",
+                  "beginRange": "0",
+                  "endRange": "Inf",
+                  "unit": "Hrs",
+                  "pricePerUnit": {
+                    "USD": "1.4080000000"
+                  },
+                  "appliesTo": []
+                }
+              },
+              "termAttributes": {}
+            }
+          }
+        },
+        {
+          "sku": "79YF9TGHCN2XR27C",
+          "productFamily": "ML Instance",
+          "attributes": {
+            "servicecode": "AmazonSageMaker",
+            "location": "US East (N. Virginia)",
+            "locationType": "AWS Region",
+            "instanceType": "ml.g5.xlarge-Training",
+            "currentGeneration": "Yes",
+            "memory": "16 GiB",
+            "networkPerformance": "N/A",
+            "usagetype": "USE1-Train:ml.g5.xlarge",
+            "operation": "RunInstance",
+            "component": "Training",
+            "computeType": "Accelerated Computing Instances",
+            "gpu": "1",
+            "gpuMemory": "NA",
+            "instanceName": "ml.g5.xlarge",
+            "physicalCpu": "N/A",
+            "physicalGpu": "N/A",
+            "platoinstancename": "g5",
+            "platoinstancetype": "Training",
+            "regionCode": "us-east-1",
+            "servicename": "Amazon SageMaker",
+            "vCpu": "4"
+          },
+          "on_demand_terms": {
+            "79YF9TGHCN2XR27C.JRTCKXETXF": {
+              "offerTermCode": "JRTCKXETXF",
+              "sku": "79YF9TGHCN2XR27C",
+              "effectiveDate": "2026-09-01T00:00:00Z",
+              "priceDimensions": {
+                "79YF9TGHCN2XR27C.JRTCKXETXF.6YS6EN2CT7": {
+                  "rateCode": "79YF9TGHCN2XR27C.JRTCKXETXF.6YS6EN2CT7",
+                  "description": "$1.408 per Training ml.g5.xlarge hour in US East (N. Virginia)",
+                  "beginRange": "0",
+                  "endRange": "Inf",
+                  "unit": "Hrs",
+                  "pricePerUnit": {
+                    "USD": "1.4080000000"
+                  },
+                  "appliesTo": []
+                }
+              },
+              "termAttributes": {}
+            }
+          }
+        },
+        {
+          "sku": "RJBZ6K5MDTSBWKEU",
+          "productFamily": "ML Instance",
+          "attributes": {
+            "servicecode": "AmazonSageMaker",
+            "location": "US East (N. Virginia)",
+            "locationType": "AWS Region",
+            "instanceType": "ml.r5.4xlarge-Processing",
+            "currentGeneration": "Yes",
+            "clockSpeed": "3.1 GHz",
+            "memory": "128 GiB",
+            "storage": "EBS only",
+            "networkPerformance": "Up to 10 Gigabit",
+            "processorArchitecture": "64-bit",
+            "usagetype": "USE1-Processing:ml.r5.4xlarge",
+            "operation": "RunInstance",
+            "component": "Processing",
+            "computeType": "Memory Optimized Instances",
+            "gpu": "0",
+            "gpuMemory": "0",
+            "instanceName": "ml.r5.4xlarge",
+            "physicalCpu": "Intel Xeon Platinum 8175 (Skylake)",
+            "physicalGpu": "None",
+            "platoinstancename": "r5",
+            "platoinstancetype": "Processing",
+            "regionCode": "us-east-1",
+            "servicename": "Amazon SageMaker",
+            "vCpu": "16"
+          },
+          "on_demand_terms": {
+            "RJBZ6K5MDTSBWKEU.JRTCKXETXF": {
+              "offerTermCode": "JRTCKXETXF",
+              "sku": "RJBZ6K5MDTSBWKEU",
+              "effectiveDate": "2026-09-01T00:00:00Z",
+              "priceDimensions": {
+                "RJBZ6K5MDTSBWKEU.JRTCKXETXF.6YS6EN2CT7": {
+                  "rateCode": "RJBZ6K5MDTSBWKEU.JRTCKXETXF.6YS6EN2CT7",
+                  "description": "$1.21 per Processing ml.r5.4xlarge hour in US East (N. Virginia)",
+                  "beginRange": "0",
+                  "endRange": "Inf",
+                  "unit": "Hrs",
+                  "pricePerUnit": {
+                    "USD": "1.2100000000"
+                  },
+                  "appliesTo": []
+                }
+              },
+              "termAttributes": {}
+            }
+          }
+        }
+      ]
+    },
+    "s3": {
+      "source": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonS3/current/us-east-1/index.json",
+      "publicationDate": "2026-09-18T17:47:47Z",
+      "version": "20260918174747",
+      "products": [
+        {
+          "sku": "ZWQ6Q48CRJXX4FXE",
+          "productFamily": "API Request",
+          "attributes": {
+            "servicecode": "AmazonS3",
+            "location": "US East (N. Virginia)",
+            "locationType": "AWS Region",
+            "group": "S3-API-Tier2",
+            "groupDescription": "GET and all other requests",
+            "usagetype": "Requests-Tier2",
+            "operation": "",
+            "regionCode": "us-east-1",
+            "servicename": "Amazon Simple Storage Service"
+          },
+          "on_demand_terms": {
+            "ZWQ6Q48CRJXX4FXE.JRTCKXETXF": {
+              "offerTermCode": "JRTCKXETXF",
+              "sku": "ZWQ6Q48CRJXX4FXE",
+              "effectiveDate": "2026-09-01T00:00:00Z",
+              "priceDimensions": {
+                "ZWQ6Q48CRJXX4FXE.JRTCKXETXF.6YS6EN2CT7": {
+                  "rateCode": "ZWQ6Q48CRJXX4FXE.JRTCKXETXF.6YS6EN2CT7",
+                  "description": "$0.004 per 10,000 GET and all other requests",
+                  "beginRange": "0",
+                  "endRange": "Inf",
+                  "unit": "Requests",
+                  "pricePerUnit": {
+                    "USD": "0.0000004000"
+                  },
+                  "appliesTo": []
+                }
+              },
+              "termAttributes": {}
+            }
+          }
+        },
+        {
+          "sku": "E9YHNFENF4XQBZR6",
+          "productFamily": "API Request",
+          "attributes": {
+            "servicecode": "AmazonS3",
+            "location": "US East (N. Virginia)",
+            "locationType": "AWS Region",
+            "group": "S3-API-Tier1",
+            "groupDescription": "PUT/COPY/POST or LIST requests",
+            "usagetype": "Requests-Tier1",
+            "operation": "",
+            "regionCode": "us-east-1",
+            "servicename": "Amazon Simple Storage Service"
+          },
+          "on_demand_terms": {
+            "E9YHNFENF4XQBZR6.JRTCKXETXF": {
+              "offerTermCode": "JRTCKXETXF",
+              "sku": "E9YHNFENF4XQBZR6",
+              "effectiveDate": "2026-09-01T00:00:00Z",
+              "priceDimensions": {
+                "E9YHNFENF4XQBZR6.JRTCKXETXF.6YS6EN2CT7": {
+                  "rateCode": "E9YHNFENF4XQBZR6.JRTCKXETXF.6YS6EN2CT7",
+                  "description": "$0.005 per 1,000 PUT, COPY, POST, or LIST requests",
+                  "beginRange": "0",
+                  "endRange": "Inf",
+                  "unit": "Requests",
+                  "pricePerUnit": {
+                    "USD": "0.0000050000"
+                  },
+                  "appliesTo": []
+                }
+              },
+              "termAttributes": {}
+            }
+          }
+        },
+        {
+          "sku": "WP9ANXZGBYYSGJEA",
+          "productFamily": "Storage",
+          "attributes": {
+            "servicecode": "AmazonS3",
+            "location": "US East (N. Virginia)",
+            "locationType": "AWS Region",
+            "availability": "99.99%",
+            "storageClass": "General Purpose",
+            "volumeType": "Standard",
+            "usagetype": "TimedStorage-ByteHrs",
+            "operation": "",
+            "durability": "99.999999999%",
+            "regionCode": "us-east-1",
+            "servicename": "Amazon Simple Storage Service"
+          },
+          "on_demand_terms": {
+            "WP9ANXZGBYYSGJEA.JRTCKXETXF": {
+              "offerTermCode": "JRTCKXETXF",
+              "sku": "WP9ANXZGBYYSGJEA",
+              "effectiveDate": "2026-09-01T00:00:00Z",
+              "priceDimensions": {
+                "WP9ANXZGBYYSGJEA.JRTCKXETXF.PGHJ3S3EYE": {
+                  "rateCode": "WP9ANXZGBYYSGJEA.JRTCKXETXF.PGHJ3S3EYE",
+                  "description": "$0.023 per GB - first 50 TB / month of storage used",
+                  "beginRange": "0",
+                  "endRange": "51200",
+                  "unit": "GB-Mo",
+                  "pricePerUnit": {
+                    "USD": "0.0230000000"
+                  },
+                  "appliesTo": []
+                },
+                "WP9ANXZGBYYSGJEA.JRTCKXETXF.D42MF2PVJS": {
+                  "rateCode": "WP9ANXZGBYYSGJEA.JRTCKXETXF.D42MF2PVJS",
+                  "description": "$0.022 per GB - next 450 TB / month of storage used",
+                  "beginRange": "51200",
+                  "endRange": "512000",
+                  "unit": "GB-Mo",
+                  "pricePerUnit": {
+                    "USD": "0.0220000000"
+                  },
+                  "appliesTo": []
+                },
+                "WP9ANXZGBYYSGJEA.JRTCKXETXF.PXJDJ3YRG3": {
+                  "rateCode": "WP9ANXZGBYYSGJEA.JRTCKXETXF.PXJDJ3YRG3",
+                  "description": "$0.021 per GB - storage used / month over 500 TB",
+                  "beginRange": "512000",
+                  "endRange": "Inf",
+                  "unit": "GB-Mo",
+                  "pricePerUnit": {
+                    "USD": "0.0210000000"
+                  },
+                  "appliesTo": []
+                }
+              },
+              "termAttributes": {}
+            }
+          }
+        }
+      ]
+    }
+  }
+}

@@ -165,7 +165,8 @@ Gate: P-oracle within ±0.001 of notebook 02's ceiling on the same sample; P0 > 
 
 Frozen: nothing downstream; measure *ceiling* F0.5 and candidate recall only (no matcher needed).
 
-1. K × cap grid for each pass (B1, B2) → recall@K curves and the recall-vs-mean-K Pareto front.
+1. K × cap grid for each pass (B1, B2) → recall@K curves and the recall-vs-mean-K Pareto front;
+   then a multi-objective Optuna study over K, cap and family weights (§5.2) to refine that front.
 2. Incremental-addition and leave-one-channel-out for the 8 key families and 3 passes (report §7.3
    requires both).
 3. B3 char-gram pass on the misses only first (cheap), then full.
@@ -182,8 +183,8 @@ on both, because a stronger matcher can afford more candidates.
 1. **Feature-family forward selection** with D1: base → +F-RARE → +F-NUM → +F-ADDR → +F-CTX
    → +F-LEGAL → +F-TXT; then leave-one-family-out from the full set (report E10–E12).
    F-CTX must be built from OOF first-pass scores (report §5.1 note).
-2. **Matcher family** on the best feature set: D0, D1, D2, D3 with 1–2 configs each; small Optuna
-   search (≤30 trials, dev tier, early stopping) for the winner only.
+2. **Matcher family** on the best feature set: D0, D1, D2, D3, each tuned with an
+   equal-budget Optuna study (§5.2); compare the re-evaluated best configs, not the defaults.
 3. **Negatives** E0–E3 on the winner.
 
 Gate to Stage 3: best config beats P0 with paired-bootstrap 95% lower bound > 0.
@@ -195,6 +196,7 @@ Pure post-processing of `pairs.parquet` → minutes per config.
 1. Calibrators F0–F3 compared by NLL, Brier, and **tail** reliability near the chosen threshold.
 2. Policies G-A…G-D; singleton model `q_i` trained on one row per S1 incl. zero-candidate rows.
 3. Threshold granularity: global vs per-country vs per-multiplicity-bucket (with shrinkage).
+4. Gate τ_q, policy coefficients and shrinkage tuned jointly by a GP-based Optuna study (§5.2).
 
 Gate: G-B/G-C adopted only if singleton FP/1000 does not rise and macro F0.5 CI lower bound > 0.
 
@@ -238,6 +240,76 @@ Expected to emerge from the stages above; listed up front so compute can be plan
 | P6 | B0 + dense rescue | P2 + dense cos | P4 matcher | P4 policy | Dense recovers transliteration misses |
 | P7 | P4/P5 best | + dense cos | GBDT + cross-encoder (uncertain band) | stacked, P4 policy | Neural reranking on the hard band |
 | P8 | best | best | best | + graph H1 | Conservative graph gain |
+
+### 5.2 Automated hyperparameter optimisation (Optuna / Bayesian optimisation)
+
+The staged search in §5 picks **structural** choices (which channels, feature families, library,
+policy). Inside each stage, the **numeric** knobs of the chosen structure are tuned automatically
+with [Optuna](https://optuna.org) rather than by hand. HPO is a sub-step of Stages 1, 2, 3 and 4,
+never a replacement for the gated structural comparisons.
+
+#### Tooling
+
+| Choice | Setting | Why |
+|---|---|---|
+| Sampler (default) | `TPESampler(multivariate=True, group=True, n_startup_trials=10, seed=…)` | Tree-structured Parzen estimator = sequential model-based (Bayesian) optimisation; handles mixed int/float/categorical and conditional spaces |
+| Sampler (continuous, ≤10 params) | `GPSampler` (Gaussian-process BO) or `CmaEsSampler` | Stronger than TPE on small smooth continuous spaces, e.g. decision-layer coefficients |
+| Multi-objective | `NSGAIISampler` / `TPESampler` with two directions | Blocking: max ceiling F0.5 vs min mean K; matcher: max F0.5 vs min wall time |
+| Baseline sampler | `RandomSampler` with the same trial budget, once per stage | Proves BO actually beats random search here (report §3: matched-budget comparisons) |
+| Pruner | `HyperbandPruner` (GBDT, via `optuna-integration` LightGBM/XGBoost callbacks reporting val loss per boosting round); `MedianPruner` across inner folds | Kills bad trials early; most of the HPO speed-up |
+| Storage | `sqlite:///experiments/optuna.db`, one study per (stage, pipeline, tier) | Resumable after crashes/laptop sleep; lets two people run workers in parallel |
+| Reproducibility | fixed sampler seed; each trial's full config written to the registry (§3.4) with `parent_id` = stage config and `trial_number` | Every trial is a normal run; all §6 plots work on it |
+
+New module `code/business_entity_resolution/src/er_tune/` holding `spaces.py` (one search-space
+function per stage), `objectives.py`, and `run_study.py` (CLI: `--stage --pipeline --tier
+--n-trials --timeout --sampler`).
+
+#### Objective and leakage rules
+
+* **Metric**: dev-tier macro F0.5 **after** the exact global-threshold optimiser (report §6.4), not
+  AUC or log-loss — the thing we are scored on. GBDT pruning uses val log-loss per round only as a
+  cheap intermediate signal.
+* **Nested splits**: within the dev tier, each trial trains on inner-train, tunes threshold/
+  calibration on inner-tune, reports F0.5 on inner-val (grouped by S1 id). Outer folds of `cv5`
+  and the `holdout` are **never** seen by any study.
+* **Variance control**: objective = mean over 2–3 inner folds (pruned after the first if below
+  the running median). Report the inner-fold std as a trial attribute.
+* **Winner's curse**: the best trial's score is optimistically biased. Re-evaluate the top 5
+  trials on fresh inner folds with 3 seeds and choose by **mean − 1·std**; that config (not the
+  raw best trial) moves to the next stage.
+* **Equal budgets**: when comparing matcher libraries (D1/D2/D3) or negative strategies, each gets
+  the same number of trials and the same timeout, so "better library" ≠ "tuned longer".
+
+#### Search spaces per stage
+
+| Stage | Parameters (range, scale) | Objective | Budget (dev tier) |
+|---|---|---|---|
+| 1 Blocking | per pass `k` {5…60, int}; `cap` {300…10000, log}; family weights in `W_ALL`/`W_NAME`/`W_ADDR` [0, 2]; `min_score` [0, 0.3] | 2-objective: max ceiling F0.5, min mean candidates/S1 (Pareto front → pick 2 configs) | 60–100 trials on a ~10k S1 sample; top 5 re-scored on 100k |
+| 2 LightGBM | `num_leaves` 15–255 log; `learning_rate` 0.01–0.2 log; `min_data_in_leaf` 20–2000 log; `feature_fraction` 0.4–1; `bagging_fraction` 0.5–1 (+`bagging_freq`); `lambda_l1`, `lambda_l2` 1e-3–10 log; `max_bin` {63,127,255}; positive weight 1–20 log; `n_estimators` via early stopping (≤3000) | macro F0.5 (post-threshold) | 50–80 trials, Hyperband pruning |
+| 2 XGBoost | `max_depth` 4–12; `eta` log; `min_child_weight` 1–200 log; `subsample`, `colsample_bytree`; `gamma` 0–5; `alpha`/`lambda` log; `tree_method=hist` | same | same budget as LightGBM |
+| 2 CatBoost | `depth` 4–10; `learning_rate` log; `l2_leaf_reg` 1–30 log; `border_count`; `random_strength`; `bagging_temperature` | same | same budget |
+| 2 Negatives | total negatives per anchor 4–24; singleton hard negatives 0–8; easy-negative share 0–0.4 | same | 20–30 trials on the locked matcher params |
+| 3 Decision | calibrator {platt, isotonic, beta}; singleton gate τ_q [0, 1]; policy coefficients α, β (G-C) [−0.5, 0.5]; group-threshold shrinkage 0–1 | macro F0.5, singleton FP/1000 as a constraint (`constraints_func`) | 100–200 trials (minutes: pure post-processing of OOF scores); `GPSampler` |
+| 4 Bi-encoder fine-tune | lr 1e-6–1e-4 log; temperature 0.03–0.2 log; batch {64,128,256}; epochs 1–4; hard-negative ratio 0–0.75 | retrieval macro recall@20 on inner-val | 10–20 trials, `MedianPruner` per epoch |
+| 4 Cross-encoder | lr log; max tokens {96,128,192}; uncertain-band bounds [p_lo, p_hi]; stacker regularisation | macro F0.5 of the stacked pipeline | 10–15 trials |
+
+The global threshold itself is **not** an HPO parameter: the exact optimiser finds it inside every
+trial. Letting BO search it as well would only add noise.
+
+#### HPO diagnostics plots (`er_viz/hpo_plots.py`, rendered per study)
+
+| Plot (`optuna.visualization.matplotlib` unless noted) | Shows | Decision |
+|---|---|---|
+| Optimisation history with best-so-far line, TPE vs random overlaid | Convergence; whether BO beats random | Stop early / raise the budget |
+| Empirical distribution (EDF) of trial scores per sampler | Same, robust to lucky trials | Sampler choice |
+| Hyperparameter importance (fANOVA and PED-ANOVA) | Which knobs matter | Shrink the space for the next study; fix unimportant ones |
+| Slice plots per parameter | Where good values lie; whether the best sits on a range edge | Widen ranges that hit a boundary |
+| Contour plot for the top-2 important parameters | Interactions | Joint vs separate tuning |
+| Parallel-coordinates plot of the top 20% of trials | Shape of the good region | Sanity check |
+| Pareto front (multi-objective studies), knee point marked | Recall vs candidates / F0.5 vs time | Pick the 2 blocking configs |
+| Intermediate-value (pruning) plot | How early bad trials are cut | Tune pruner aggressiveness |
+| Top-5 re-evaluation: mean ± std bars (custom) | Winner's-curse check | Final config choice |
+| Tuned vs default-params Δ macro F0.5 with bootstrap CI (custom, feeds the §6.5 forest plot) | Value of HPO itself | Whether HPO was worth its wall time |
 
 ---
 
@@ -411,7 +483,8 @@ is worth running).
 | 2 | Folds, holdout, dev sample, label audit | `artifacts/folds.parquet`, audit notes | 1 |
 | 3 | `er_eval` metrics + bootstrap + registry; unit-test F0.5 and exact threshold on toy cases | package + tests | — |
 | 4 | Stage 0 baselines + §6.4 waterfall + §6.5 leaderboard skeleton | first comparison report | 2, 3 |
-| 5 | Stage 1 blocking search + §6.1 plots | 2 blocking configs | 4 |
+| 4b | `er_tune` (Optuna studies, SQLite storage, registry hook) + `er_viz/hpo_plots.py`; smoke-test a 10-trial LightGBM study on P0 against the random sampler | HPO harness | 3, 4 |
+| 5 | Stage 1 blocking search + §6.1 plots + blocking HPO (§5.2) | 2 blocking configs | 4, 4b |
 | 6 | Pair-feature module (families C) with vectorised/rapidfuzz kernels, cached per candidate set | `features/` parquet | 5 |
 | 7 | Stage 2 + §6.2 plots, §6.6(a) SHAP-space views | best engineered pipeline | 6 |
 | 8 | Stage 3 + §6.3 plots | locked decision layer | 7 |
@@ -422,7 +495,7 @@ is worth running).
 | 13 | Fill `Documentation_template.md` with the waterfall, ablation forest plot and key SHAP/SAE findings | submission docs | 12 |
 
 Dependencies to add in `pyproject.toml` when the relevant step starts: `scikit-learn`, `lightgbm`,
-`xgboost`, `catboost`, `optuna`, `shap`, `seaborn`, `umap-learn`, `upsetplot` (steps 3–8);
+`xgboost`, `catboost`, `optuna`, `optuna-integration` (pruning callbacks), `shap`, `seaborn`, `umap-learn`, `upsetplot` (steps 3–8);
 `torch`, `sentence-transformers`, `faiss-cpu` (step 10 only).
 
 ### Stop / skip rules

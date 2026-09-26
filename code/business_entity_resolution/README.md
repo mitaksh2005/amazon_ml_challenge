@@ -103,6 +103,7 @@ Run stages one at a time with `python run.py <stage> ...` and the same `--data-d
 | `--pipelines P0,P2,P4` | all | evaluates a subset |
 | `--feature-chunk` | 500k | pairs per feature batch; lower it if memory is tight |
 | `--batch-chunks` | 2 | S1 key chunks (250k each) per test retrieval batch |
+| `--gpu` | off | train XGBoost on the CUDA GPU (`device="cuda"`) in tuning, evaluation and the final refit; checked at start-up (needs the standard `xgboost` wheel, not `xgboost-cpu`) |
 | `ER_THREADS` env | all cores | threads for LightGBM / XGBoost / CatBoost |
 
 **Runtime expectations.** These are measured only on a small smoke sample on a laptop; full-scale numbers are **not measured yet**:

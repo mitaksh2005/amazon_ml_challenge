@@ -286,6 +286,7 @@ def main(argv=None):
     ap.add_argument("--no-random-baseline", action="store_true", help="skip equal-budget random-search studies")
     ap.add_argument("--neural", action="store_true", help="include the dense-similarity pipeline (needs `neural` stage)")
     ap.add_argument("--neural-cpu", action="store_true", help="allow the neural stage without a CUDA GPU (very slow)")
+    ap.add_argument("--gpu", action="store_true", help="train XGBoost on the CUDA GPU (tuning, evaluation, final refit)")
     ap.add_argument("--sae-entities", type=int, default=3000, help="dev S1 entities whose records feed the SAE analysis")
     ap.add_argument("--pipelines", default="all", help="comma list of pipeline names to evaluate")
     ap.add_argument("--folds", type=int, default=None, help="evaluate only the first N outer folds (quick runs)")
@@ -300,6 +301,13 @@ def main(argv=None):
     ap.add_argument("--force", action="store_true")
     a = ap.parse_args(argv)
     paths = make_paths(a)
+    if a.gpu:                                       # checked up front, like --neural below
+        import models as M
+        msg = M.xgb_gpu_check()
+        if msg:
+            sys.exit(msg)
+        M.set_xgb_device("cuda")
+        log("XGBoost will train on the GPU (device=cuda)")
     if a.neural or a.stage == "neural":           # fail now, not hours later when the stage is reached
         import neural
         msg = neural.check(require_cuda=not a.neural_cpu)

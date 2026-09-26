@@ -10,6 +10,30 @@ import pandas as pd
 from er_eval.metrics import best_threshold
 
 N_THREADS = int(os.environ.get("ER_THREADS", os.cpu_count() or 1))
+XGB_DEVICE = os.environ.get("ER_XGB_DEVICE", "cpu")      # "cuda" trains XGBoost on the GPU (run.py --gpu)
+
+
+def set_xgb_device(device: str) -> None:
+    global XGB_DEVICE
+    XGB_DEVICE = device
+
+
+def xgb_gpu_check() -> str | None:
+    """None if XGBoost can train on a CUDA GPU here, else what is wrong."""
+    import sys
+    if importlib.util.find_spec("xgboost") is None:
+        return "--gpu: xgboost is not installed in this Python (" + sys.executable + ")"
+    import xgboost as xgb
+    if not xgb.build_info().get("USE_CUDA", False):
+        return (f"--gpu: this xgboost {xgb.__version__} build has no CUDA support (e.g. the xgboost-cpu package). "
+                f"Install the standard wheel: \"{sys.executable}\" -m pip install --force-reinstall xgboost")
+    try:
+        X = np.random.default_rng(0).random((256, 4))
+        xgb.train({"device": "cuda", "tree_method": "hist", "objective": "binary:logistic", "verbosity": 0},
+                  xgb.DMatrix(X, (X[:, 0] > 0.5).astype(int)), 2)
+    except Exception as ex:   # no GPU / driver / CUDA runtime problem
+        return f"--gpu: XGBoost could not train on CUDA: {type(ex).__name__}: {str(ex).strip().splitlines()[0][:300]}"
+    return None
 
 
 def available(lib: str) -> bool:
@@ -57,9 +81,13 @@ class Matcher:
         elif self.lib == "xgb":
             import xgboost as xgb
             params = {"objective": "binary:logistic", "eval_metric": "logloss", "tree_method": "hist",
-                      "nthread": N_THREADS, "seed": self.seed, **p}
-            dtr = xgb.DMatrix(X, y, weight=w)
-            evals = [(xgb.DMatrix(X_es, y_es), "es")] if X_es is not None else []
+                      "nthread": N_THREADS, "seed": self.seed, "device": XGB_DEVICE, **p}
+            if XGB_DEVICE.startswith("cuda"):     # pre-binned matrices: far less GPU memory than a DMatrix
+                dtr = xgb.QuantileDMatrix(X, y, weight=w, max_bin=int(p.get("max_bin", 256)))
+                evals = [(xgb.QuantileDMatrix(X_es, y_es, ref=dtr), "es")] if X_es is not None else []
+            else:
+                dtr = xgb.DMatrix(X, y, weight=w)
+                evals = [(xgb.DMatrix(X_es, y_es), "es")] if X_es is not None else []
             self.model = xgb.train(params, dtr, MAX_ROUNDS, evals=evals,
                                    early_stopping_rounds=EARLY_STOP if evals else None, verbose_eval=False)
             self.best_iter = getattr(self.model, "best_iteration", None)
@@ -88,7 +116,8 @@ class Matcher:
         if self.lib == "xgb":
             import xgboost as xgb
             it = (0, self.best_iter + 1) if self.best_iter is not None else (0, 0)
-            return self.model.predict(xgb.DMatrix(X), iteration_range=it)
+            with xgb.config_context(verbosity=0):  # silence the host-data/GPU-model device-mismatch warning
+                return self.model.predict(xgb.DMatrix(X), iteration_range=it)
         return self.model.predict_proba(X)[:, 1]
 
     def importance(self) -> pd.Series:
@@ -109,7 +138,8 @@ class Matcher:
             return self.model.predict(X, pred_contrib=True, num_iteration=self.best_iter)[:, :-1]
         if self.lib == "xgb":
             import xgboost as xgb
-            return self.model.predict(xgb.DMatrix(X), pred_contribs=True)[:, :-1]
+            with xgb.config_context(verbosity=0):
+                return self.model.predict(xgb.DMatrix(X), pred_contribs=True)[:, :-1]
         if self.lib == "cat":
             from catboost import Pool
             return self.model.get_feature_importance(Pool(X), type="ShapValues")[:, :-1]

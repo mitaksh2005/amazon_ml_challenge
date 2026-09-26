@@ -336,6 +336,7 @@ def evaluate(cfg: PipelineConfig, ws: Workspace, reg: Registry, n_folds: int | N
     e = _slices(e, pairs)
     metrics = _metrics(cfg, e, pairs, fold_rows, cal_rows)
     ledger = {"total_s": time.time() - t_start, "peak_rss_gb": _rss_gb(), "folds": bundles_t,
+              "device": M.XGB_DEVICE if cfg.matcher == "xgb" else "cpu",
               "n_pairs": int(len(pairs)), "n_entities": int(len(e))}
     extra = {}
     if importances:

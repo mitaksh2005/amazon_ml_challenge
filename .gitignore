@@ -5,3 +5,5 @@ __pycache__/
 cleaned/
 blocking_cache/
 artifacts/
+work/
+*_submission.zip

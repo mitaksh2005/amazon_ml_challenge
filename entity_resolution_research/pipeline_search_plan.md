@@ -5,8 +5,31 @@ this document turns it into (1) a concrete, staged search over candidate pipelin
 dataset and repo, and (2) the analysis/plotting work needed to understand and compare what each
 pipeline learns — including sparse-autoencoder (SAE) views of the neural models' feature spaces.
 
-Status: plan only. Nothing below has been run; every number quoted from the repo is marked with its
-source.
+Status: **implemented** in `code/business_entity_resolution/src/` (entry point `run.py`; see that
+folder's README for how to run it on SageMaker). The code has been smoke-tested end to end only on a
+small slice of the data. No full-scale results exist yet; every number quoted from the repo is
+marked with its source.
+
+**Differences between the plan and the implementation.** Each of these is deliberate; the code
+exposes a place to add the missing ones:
+
+* **Not implemented:**
+  * B3 char-gram blocking pass, B4 dense-rescue blocking and the B5 learned compressor. The blocking
+    search tunes K, min-score and the pass mix of the existing sparse passes instead.
+  * A3 libpostal parsing.
+  * G-D GFM set utility.
+  * E3 model-false-positive refresh.
+  * Stage 4 fine-tuned bi-encoder and cross-encoder. A **frozen** multilingual-E5 similarity
+    feature (`--neural`) and the SAE analysis on its embeddings are implemented.
+* **Calibrators (F0–F3)** are compared as diagnostics inside every run (NLL/Brier on held-out
+  folds), not as separate pipelines. A monotone calibrator does not change what a global-threshold
+  policy predicts.
+* **F-CTX context features** use label-free retrieval-score and name-similarity context rather than
+  out-of-fold first-pass model scores. This gives the same information without a second training
+  level.
+* **The `hpo` sample is disjoint from `dev`**, instead of nesting a study inside every outer fold.
+  With 2.2M labelled entities, a separate sample is cheaper and equally leak-free.
+* **The cross-country check** runs for the top 3 pipelines (`compare --xcountry`, on by default).
 
 ---
 

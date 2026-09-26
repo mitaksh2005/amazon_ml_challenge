@@ -6,6 +6,9 @@ Model: intfloat/multilingual-e5-small (MIT licence, 118M parameters, 384-d), use
 with the "query: " prefix on both sides as its authors recommend for symmetric tasks."""
 from __future__ import annotations
 
+import sys
+import time
+
 import numpy as np
 import pandas as pd
 
@@ -18,19 +21,41 @@ def record_text(df: pd.DataFrame) -> pd.Series:
     return "query: " + df.name_core.fillna("") + " | " + df.addr_norm.fillna("")
 
 
-def embed(texts: list[str], model_name: str = MODEL, batch_size: int = 256) -> np.ndarray:
+def check(require_cuda: bool = True) -> str | None:
+    """None if the neural stage can run, else a message saying what is missing."""
+    import importlib.util
+    missing = [m for m in ("torch", "sentence_transformers") if importlib.util.find_spec(m) is None]
+    if missing:
+        return (f"--neural needs {', '.join(missing)} in THIS Python ({sys.executable}). Install with:\n"
+                f"  \"{sys.executable}\" -m pip install torch --index-url https://download.pytorch.org/whl/cu128\n"
+                f"  \"{sys.executable}\" -m pip install sentence-transformers")
+    import torch
+    if require_cuda and not torch.cuda.is_available():
+        return (f"torch {torch.__version__} sees no CUDA GPU (CPU-only build?). Reinstall the CUDA build with\n"
+                f"  \"{sys.executable}\" -m pip install --force-reinstall torch --index-url https://download.pytorch.org/whl/cu128\n"
+                f"or pass --neural-cpu to accept a very slow CPU run.")
+    return None
+
+
+def embed(texts: list[str], model_name: str = MODEL, batch_size: int = 256, block: int = 250_000) -> np.ndarray:
+    """L2-normalised FP16 embeddings, encoded in length-sorted blocks so host memory stays ~N x d x 2 bytes."""
     import torch
     from sentence_transformers import SentenceTransformer
     dev = "cuda" if torch.cuda.is_available() else "cpu"
     m = SentenceTransformer(model_name, device=dev)
     if dev == "cuda":
         m = m.half()
-    order = np.argsort([len(t) for t in texts])            # length bucketing: less padding
-    out = m.encode([texts[i] for i in order], batch_size=batch_size, normalize_embeddings=True,
-                   show_progress_bar=True, convert_to_numpy=True)
-    emb = np.empty_like(out)
-    emb[order] = out
-    return emb.astype(np.float16)
+    order = np.argsort(np.fromiter((len(t) for t in texts), np.int32, len(texts)), kind="stable")
+    emb = np.empty((len(texts), m.get_sentence_embedding_dimension()), np.float16)
+    t0 = time.time()
+    for b in range(0, len(order), block):
+        idx = order[b:b + block]
+        emb[idx] = m.encode([texts[i] for i in idx], batch_size=batch_size, normalize_embeddings=True,
+                            show_progress_bar=False, convert_to_numpy=True).astype(np.float16)
+        done = min(b + block, len(order))
+        rate = done / max(time.time() - t0, 1e-9)
+        log(f"embedded {done:,}/{len(order):,} records ({rate:,.0f}/s, ~{(len(order) - done) / rate / 60:.0f} min left)")
+    return emb
 
 
 def embeddings_for(paths: Paths, split: str, ids: np.ndarray, tag: str) -> tuple[pd.Index, np.ndarray]:

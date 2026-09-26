@@ -219,9 +219,19 @@ def stage_compare(a, paths):
         try:
             from er_viz import sae
             ids = pd.read_parquet(paths.art / "emb_train_ids.parquet")
-            emb = np.load(paths.art / "emb_train.npy")
+            emb = np.load(paths.art / "emb_train.npy", mmap_mode="r")
             dev_pairs = ws.wide_pairs("dev")[["s1_entity_id", "cand_entity_id", "label"]]
-            sae.run(sink, emb.astype(np.float32), ids.entity_id.to_numpy(), ids.set_index("entity_id").text,
+            # bounded sample: a few thousand dev S1 and all their candidates (dense SAE codes are n x 8d floats)
+            rng = np.random.default_rng(a.seed)
+            s1s = dev_pairs.s1_entity_id.unique()
+            keep = set(rng.choice(s1s, min(a.sae_entities, len(s1s)), replace=False))
+            dev_pairs = dev_pairs[dev_pairs.s1_entity_id.isin(keep)]
+            want = pd.Index(pd.unique(np.r_[dev_pairs.s1_entity_id.to_numpy(), dev_pairs.cand_entity_id.to_numpy()]))
+            rows = np.sort(pd.Index(ids.entity_id).get_indexer(want))
+            rows = rows[rows >= 0]
+            sub = ids.iloc[rows]
+            log(f"SAE on {len(rows):,} records from {len(keep):,} dev S1")
+            sae.run(sink, np.asarray(emb[rows], np.float32), sub.entity_id.to_numpy(), sub.set_index("entity_id").text,
                     dev_pairs, log=log)
         except Exception as ex:
             log(f"SAE analysis failed: {type(ex).__name__}: {ex}")
@@ -275,6 +285,8 @@ def main(argv=None):
     ap.add_argument("--tune-timeout", type=float, default=None, help="seconds per matcher study")
     ap.add_argument("--no-random-baseline", action="store_true", help="skip equal-budget random-search studies")
     ap.add_argument("--neural", action="store_true", help="include the dense-similarity pipeline (needs `neural` stage)")
+    ap.add_argument("--neural-cpu", action="store_true", help="allow the neural stage without a CUDA GPU (very slow)")
+    ap.add_argument("--sae-entities", type=int, default=3000, help="dev S1 entities whose records feed the SAE analysis")
     ap.add_argument("--pipelines", default="all", help="comma list of pipeline names to evaluate")
     ap.add_argument("--folds", type=int, default=None, help="evaluate only the first N outer folds (quick runs)")
     ap.add_argument("--strict", action="store_true", help="stop on the first failing pipeline")
@@ -288,6 +300,11 @@ def main(argv=None):
     ap.add_argument("--force", action="store_true")
     a = ap.parse_args(argv)
     paths = make_paths(a)
+    if a.neural or a.stage == "neural":           # fail now, not hours later when the stage is reached
+        import neural
+        msg = neural.check(require_cuda=not a.neural_cpu)
+        if msg:
+            sys.exit(msg)
     t0 = time.time()
     order = ["prepare", "tune"] + (["neural"] if a.neural else []) + ["evaluate", "compare", "submit"] \
         if a.stage == "all" else [a.stage]

@@ -131,6 +131,7 @@ def run(sink: FigureSink, emb: np.ndarray, ids: np.ndarray, texts: pd.Series, pa
 
     base_auc = auc(X)
     rows, saes = [], {}
+    k_mid = ks[len(ks) // 2]
     for k in ks:
         sae = TopKSAE(d, expansion * d, k).fit(Xn, epochs=epochs, log=log)
         Z = sae.transform(Xn)
@@ -138,7 +139,8 @@ def run(sink: FigureSink, emb: np.ndarray, ids: np.ndarray, texts: pd.Series, pa
         freq = (Z > 0).mean(0)
         rows.append({"k": k, "n_latents": expansion * d, "fvu": fvu(X, Xh), "dead_frac": float((freq == 0).mean()),
                      "dense_frac": float((freq > 0.1).mean()), "pair_auc_original": base_auc, "pair_auc_recon": auc(Xh)})
-        saes[k] = (sae, Z, Xh)
+        saes[k] = (sae, Z if k == k_mid else None, None)   # dense codes are n x 8d: keep one set only
+        del Xh
         log(f"SAE k={k}: {rows[-1]}")
     q = pd.DataFrame(rows)
 
@@ -153,7 +155,6 @@ def run(sink: FigureSink, emb: np.ndarray, ids: np.ndarray, texts: pd.Series, pa
     sink.save(fig, "sae_quality", "SAE quality: FVU vs L0 and downstream fidelity", "SAE", q,
               note="Interpret only SAEs that lose little downstream AUC (plan: < 1 pp).")
 
-    k_mid = ks[len(ks) // 2]
     sae, Z, _ = saes[k_mid]
     freq = (Z > 0).mean(0)
     fig, ax = plt.subplots(figsize=(6.5, 3.2))

@@ -163,7 +163,7 @@ def intermediate(sink: FigureSink, tag: str, st):
 def reevaluation(sink: FigureSink, tag: str, path):
     if not path.exists():
         return
-    df = pd.DataFrame(json.loads(path.read_text()))
+    df = pd.DataFrame(json.loads(path.read_text(encoding="utf-8")))
     if df.empty:
         return
     best = df.robust_score.idxmax()

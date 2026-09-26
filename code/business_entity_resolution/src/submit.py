@@ -68,7 +68,7 @@ def test_candidates(paths: Paths, cfg: PipelineConfig, ws: Workspace, batch_chun
         t0 = time.time()
         B.generate_candidates(q_chunks, pool, stats, out_dir, passes=passes_for(ws.blocking(cfg.blocking)),
                               batch_chunks=batch_chunks, log=log)
-        done.write_text(f"{time.time() - t0:.0f}s")
+        done.write_text(f"{time.time() - t0:.0f}s", encoding="utf-8")
     return out_dir, q_chunks
 
 

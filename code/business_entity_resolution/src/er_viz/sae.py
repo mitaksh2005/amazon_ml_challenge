@@ -164,9 +164,13 @@ def run(sink: FigureSink, emb: np.ndarray, ids: np.ndarray, texts: pd.Series, pa
               pd.DataFrame({"latent": np.arange(len(freq)), "freq": freq}))
 
     # which latents differ between a record and its candidate on false vs true pairs?
-    Za, Zb = Z[a], Z[b]
-    diff = np.abs((Za > 0).astype(np.float32) - (Zb > 0).astype(np.float32))
-    pos, neg = diff[y == 1].mean(0), diff[y == 0].mean(0)
+    dis = np.zeros((2, Z.shape[1]), np.float64)          # disagreement counts for non-match / match, chunked
+    for s in range(0, len(a), 5000):
+        d = (Z[a[s:s + 5000]] > 0) != (Z[b[s:s + 5000]] > 0)
+        yy = y[s:s + 5000]
+        dis[0] += d[yy == 0].sum(0)
+        dis[1] += d[yy == 1].sum(0)
+    pos, neg = dis[1] / max((y == 1).sum(), 1), dis[0] / max((y == 0).sum(), 1)
     lo = np.log2((neg + 1e-4) / (pos + 1e-4))
     fig, ax = plt.subplots(figsize=(6.5, 4))
     ax.scatter(np.log10(freq + 1e-6), lo, s=6, color=NEUTRAL_BAR, linewidths=0)
@@ -184,9 +188,11 @@ def run(sink: FigureSink, emb: np.ndarray, ids: np.ndarray, texts: pd.Series, pa
     # causal check: zero the top discriminating latents and re-measure pair AUC
     abl = []
     for n_off in (0, 5, 20, 50):
-        Zc = Z.copy()
-        Zc[:, np.argsort(-lo)[:n_off]] = 0
-        abl.append({"latents_zeroed": n_off, "pair_auc": auc(sae.reconstruct(Zc) * sd + mu)})
+        off = np.argsort(-lo)[:n_off]
+        saved = Z[:, off].copy()
+        Z[:, off] = 0
+        abl.append({"latents_zeroed": n_off, "pair_auc": auc(sae.reconstruct(Z) * sd + mu)})
+        Z[:, off] = saved
     abl = pd.DataFrame(abl)
     fig, ax = plt.subplots(figsize=(5.5, 3.2))
     ax.plot(abl.latents_zeroed, abl.pair_auc, color=SERIES[0], marker="o")

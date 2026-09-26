@@ -145,7 +145,7 @@ def stage_compare(a, paths):
         for n in top[:3]:
             f = reg.dir(n) / "xcountry.json"
             if f.exists() and not a.force:
-                xc[n] = json.loads(f.read_text())
+                xc[n] = json.loads(f.read_text(encoding="utf-8"))
             else:
                 xc[n] = cross_country(PipelineConfig.from_dict(reg.load(n, "config.json")), ws, seed=a.seed)
                 write_json(f, xc[n])
@@ -226,6 +226,10 @@ def stage_compare(a, paths):
             s1s = dev_pairs.s1_entity_id.unique()
             keep = set(rng.choice(s1s, min(a.sae_entities, len(s1s)), replace=False))
             dev_pairs = dev_pairs[dev_pairs.s1_entity_id.isin(keep)]
+            # cap pairs (all matches + sampled non-matches): SAE codes are records x 8d float32
+            pos, neg = dev_pairs[dev_pairs.label == 1], dev_pairs[dev_pairs.label == 0]
+            neg = neg.sample(max(0, min(len(neg), a.sae_pairs - len(pos))), random_state=a.seed)
+            dev_pairs = pd.concat([pos, neg], ignore_index=True)
             want = pd.Index(pd.unique(np.r_[dev_pairs.s1_entity_id.to_numpy(), dev_pairs.cand_entity_id.to_numpy()]))
             rows = np.sort(pd.Index(ids.entity_id).get_indexer(want))
             rows = rows[rows >= 0]
@@ -243,7 +247,7 @@ def stage_compare(a, paths):
                  f"Δ ≥ +0.001): {', '.join(adm.pipeline)}.</p>")
     hold = reg.dir(best) / "holdout.json"
     if hold.exists():
-        h = json.loads(hold.read_text())
+        h = json.loads(hold.read_text(encoding="utf-8"))
         extra += f"<p>Holdout (scored once): macro F0.5 <b>{h['macro_f05']:.4f}</b>.</p>"
     out = report.write(sink, idx, best, extra)
     write_json(paths.reports / "selection.json", {"best": best, "reference": ref, "top": top})
@@ -288,6 +292,7 @@ def main(argv=None):
     ap.add_argument("--neural-cpu", action="store_true", help="allow the neural stage without a CUDA GPU (very slow)")
     ap.add_argument("--gpu", action="store_true", help="train XGBoost on the CUDA GPU (tuning, evaluation, final refit)")
     ap.add_argument("--sae-entities", type=int, default=3000, help="dev S1 entities whose records feed the SAE analysis")
+    ap.add_argument("--sae-pairs", type=int, default=30_000, help="max candidate pairs (all matches kept) in the SAE analysis")
     ap.add_argument("--pipelines", default="all", help="comma list of pipeline names to evaluate")
     ap.add_argument("--folds", type=int, default=None, help="evaluate only the first N outer folds (quick runs)")
     ap.add_argument("--strict", action="store_true", help="stop on the first failing pipeline")

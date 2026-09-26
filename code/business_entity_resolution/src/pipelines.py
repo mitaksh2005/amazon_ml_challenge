@@ -88,14 +88,14 @@ class Workspace:
 
     def hpo_params(self, lib: str) -> dict | None:
         f = self.paths.exp / "hpo" / lib / "best_params.json"
-        return json.loads(f.read_text())["params"] if f.exists() else None
+        return json.loads(f.read_text(encoding="utf-8"))["params"] if f.exists() else None
 
     def hpo_best_lib(self) -> str | None:
         vals = {}
         for lib in ("lgbm", "xgb", "cat"):
             f = self.paths.exp / "hpo" / lib / "best_params.json"
             if f.exists():
-                vals[lib] = json.loads(f.read_text())["robust_score"]
+                vals[lib] = json.loads(f.read_text(encoding="utf-8"))["robust_score"]
         return max(vals, key=vals.get) if vals else None
 
     def pairs_for(self, cfg: PipelineConfig, role: str) -> pd.DataFrame:

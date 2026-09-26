@@ -65,7 +65,7 @@ class FigureSink:
 
     def html(self, name: str, title: str, section: str, body: str, note: str = "") -> Path:
         p = self.dir / f"{name}.html"
-        p.write_text(page(title, body))
+        p.write_text(page(title, body), encoding="utf-8")
         self.items.append({"file": p.name, "title": title, "section": section, "note": note, "csv": None, "html": True})
         return p
 

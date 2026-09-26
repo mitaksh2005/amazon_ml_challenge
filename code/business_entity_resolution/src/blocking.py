@@ -194,14 +194,14 @@ def cache_keys(parquet: Path, cache_dir: Path, rows_per_chunk: int = 250_000) ->
     cache_dir.mkdir(parents=True, exist_ok=True)
     done = cache_dir / f"{parquet.stem}.done.json"
     if done.exists():
-        return [cache_dir / p for p in json.loads(done.read_text())]
+        return [cache_dir / p for p in json.loads(done.read_text(encoding="utf-8"))]
     paths = []
     for i, batch in enumerate(pq.ParquetFile(parquet).iter_batches(batch_size=rows_per_chunk, columns=COLS)):
         kc = build_keys(batch.to_pandas())
         p = cache_dir / f"{parquet.stem}.{i:03d}.npz"
         np.savez(p, ids=kc.ids, country=kc.country, indptr=kc.indptr, bucket=kc.bucket, fam=kc.fam)
         paths.append(p)
-    done.write_text(json.dumps([p.name for p in paths]))
+    done.write_text(json.dumps([p.name for p in paths]), encoding="utf-8")
     return paths
 
 
@@ -474,7 +474,7 @@ def generate_candidates(query: list[Path], pool: list[Path], stats: PoolStats, o
     out_dir.mkdir(parents=True, exist_ok=True)
     pool_ids = chunk_ids(pool)
     per_q = []
-    tsv = open(tsv_path, "w") if tsv_path else None
+    tsv = open(tsv_path, "w", encoding="utf-8", newline="\n") if tsv_path else None
     if tsv:
         tsv.write("source1_entity_id\tcandidate_entity_ids\n")
     try:

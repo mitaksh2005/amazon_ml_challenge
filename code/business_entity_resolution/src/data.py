@@ -190,7 +190,7 @@ def blocking_configs(paths: Paths) -> dict:
     f = paths.exp / "blocking" / "blocking_configs.json"
     cfgs = {"B0": B0}
     if f.exists():
-        cfgs.update(json.loads(f.read_text()))
+        cfgs.update(json.loads(f.read_text(encoding="utf-8")))
     return cfgs
 
 

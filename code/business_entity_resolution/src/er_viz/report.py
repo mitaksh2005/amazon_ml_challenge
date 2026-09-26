@@ -33,5 +33,5 @@ def write(sink: FigureSink, leaderboard: pd.DataFrame, best: str, extra_html: st
                 body.append(f"<figure><figcaption>{html.escape(i['title'])}{link}</figcaption>{note}"
                             f"<img src='{i['file']}' alt='{html.escape(i['title'])}'></figure>")
     out = sink.dir / "index.html"
-    out.write_text(page("Pipeline comparison", "\n".join(body)))
+    out.write_text(page("Pipeline comparison", "\n".join(body)), encoding="utf-8")
     return str(out)

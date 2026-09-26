@@ -48,7 +48,7 @@ def pareto(sink: FigureSink, front_file, configs: dict, wide: pd.DataFrame, ent:
         ax.scatter(x, y, s=14, color=NEUTRAL_BAR, label="trials", zorder=2)
         rows += [{"kind": "trial", "cands_per_s1": a, "ceiling_f05": b} for a, b in zip(x, y)]
     if front_file.exists():
-        fr = pd.DataFrame(json.loads(front_file.read_text())["front"]).sort_values("cands_per_s1")
+        fr = pd.DataFrame(json.loads(front_file.read_text(encoding="utf-8"))["front"]).sort_values("cands_per_s1")
         ax.plot(fr.cands_per_s1, fr.ceiling_f05, color=SERIES[0], marker="o", ms=4, label="Pareto front", zorder=3)
         rows += [{"kind": "front", **r} for r in fr[["cands_per_s1", "ceiling_f05"]].to_dict("records")]
     for i, (name, cfg) in enumerate({"B0": B0, **configs}.items()):

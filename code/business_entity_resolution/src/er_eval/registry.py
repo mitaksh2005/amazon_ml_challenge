@@ -39,12 +39,12 @@ def _jsonable(o):
 def write_json(path: Path, obj) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     tmp = path.with_suffix(path.suffix + ".tmp")
-    tmp.write_text(json.dumps(_jsonable(obj), indent=2))
+    tmp.write_text(json.dumps(_jsonable(obj), indent=2), encoding="utf-8")
     tmp.replace(path)
 
 
 def read_json(path: Path):
-    return json.loads(Path(path).read_text())
+    return json.loads(Path(path).read_text(encoding="utf-8"))
 
 
 def git_sha(repo: Path | None = None) -> str:

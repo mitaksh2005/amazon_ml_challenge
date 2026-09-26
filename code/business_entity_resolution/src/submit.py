@@ -73,7 +73,11 @@ def test_candidates(paths: Paths, cfg: PipelineConfig, ws: Workspace, batch_chun
 
 
 def predict_test(paths: Paths, cfg: PipelineConfig, b, ws: Workspace, batch_chunks: int = 2,
-                 feature_chunk: int = 500_000) -> dict:
+                 feature_chunk: int = 500_000, unique: bool = True) -> dict:
+    """unique: keep each external record for at most one S1 (its highest-scoring one). Train gold is strictly
+    one-to-one (0 of 7.6M linked S2/S3 records belong to more than one S1), and on the full test set all 1.73M
+    S1 compete for the same records, so generic names (SARL, COMMERCE, PARIS) otherwise pile many S1 onto
+    one record. The dev OOF score under-states this: there only 100k S1 compete."""
     cand_dir, q_chunks = test_candidates(paths, cfg, ws, batch_chunks)
     s1_ids = B.chunk_ids(q_chunks).astype(str)
     t0 = time.time()
@@ -130,8 +134,21 @@ def predict_test(paths: Paths, cfg: PipelineConfig, b, ws: Workspace, batch_chun
             if s not in seen:
                 fh.write(f"{s}\t\n")
     pred = pd.concat(preds, ignore_index=True) if preds else pd.DataFrame(columns=["s1_entity_id", "cand_entity_id", "p"])
-    if cfg.graph and len(pred):
+    s1_country = s1.set_index("entity_id").country.astype(str)
+    coll = {}
+    if len(pred):
+        claims = pred.groupby("cand_entity_id").s1_entity_id.transform("size")
+        by_c = pd.DataFrame({"country": pred.s1_entity_id.map(s1_country).fillna("?").to_numpy(),
+                             "collide": (claims > 1).to_numpy()}).groupby("country").collide.agg(["mean", "sum"])
+        coll = {"links_on_shared_records": int((claims > 1).sum()),
+                "shared_records": int(pred.cand_entity_id[claims > 1].nunique()),
+                "max_s1_per_record": int(claims.max()),
+                "collision_rate_by_country": {c: round(float(r["mean"]), 4) for c, r in by_c.iterrows()}}
+        log(f"collisions before unique assignment: {coll}")
+    if (unique or cfg.graph) and len(pred):
         keep = M.unique_assignment(pred.assign(pred=True), np.ones(len(pred), bool))
+        coll["links_dropped_by_unique_assignment"] = int((~keep).sum())
+        log(f"unique assignment dropped {int((~keep).sum()):,} of {len(pred):,} predicted links")
         pred = pred[keep]
     pred = pred.sort_values(["s1_entity_id", "p"], ascending=[True, False])
     lists = pred.groupby("s1_entity_id").cand_entity_id.agg(",".join)
@@ -140,7 +157,12 @@ def predict_test(paths: Paths, cfg: PipelineConfig, b, ws: Workspace, batch_chun
     res.to_csv(paths.out / "matching_results.tsv", sep="\t", index=False, lineterminator="\n", encoding="utf-8")
     stats = {"n_s1": int(len(s1_ids)), "n_candidate_pairs": int(n_pairs), "n_predicted_pairs": int(len(pred)),
              "s1_with_prediction": float((res.matched_entity_ids != "").mean()),
-             "cands_per_s1": n_pairs / max(len(s1_ids), 1)}
+             "cands_per_s1": n_pairs / max(len(s1_ids), 1),
+             "s1_without_candidates": int(len(s1_ids) - len(seen)),
+             "s1_without_candidates_by_country": {k: int(v) for k, v in
+                                                  s1_country.reindex(pd.Index(s1_ids).difference(pd.Index(list(seen))))
+                                                  .fillna("?").value_counts().items()},
+             "unique_assignment": bool(unique or cfg.graph), **coll}
     log(f"test predictions: {stats}")
     return stats
 
@@ -170,13 +192,15 @@ def make_zip(paths: Paths, team: str, repo_root: Path) -> Path:
 
 
 def run(paths: Paths, ws: Workspace, reg: Registry, name: str = "best", batch_chunks: int = 2,
-        team: str | None = None, repo_root: Path | None = None, feature_chunk: int = 500_000) -> dict:
+        team: str | None = None, repo_root: Path | None = None, feature_chunk: int = 500_000,
+        unique: bool = True) -> dict:
     name = choose(reg, name)
     cfg = PipelineConfig.from_dict(reg.load(name, "config.json"))
     log(f"submitting pipeline {name}: {cfg.description}")
     b = final_bundle(cfg, ws, reg)
     hold = holdout(cfg, b, ws, reg)
-    stats = predict_test(paths, cfg, b, ws, batch_chunks=batch_chunks, feature_chunk=feature_chunk)
+    stats = predict_test(paths, cfg, b, ws, batch_chunks=batch_chunks, feature_chunk=feature_chunk,
+                         unique=unique)
     ok, msg = validate(paths)
     log(f"validator: {'PASS' if ok else 'FAIL'}\n{msg}")
     out = {"pipeline": name, "holdout": hold, "test": stats, "validator_pass": ok, "validator_output": msg}

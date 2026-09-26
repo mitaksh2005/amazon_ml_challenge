@@ -17,7 +17,7 @@ import blocking as B
 import models as M
 from data import PASS_NAMES, Paths, key_chunks, load_records, log, passes_for
 from er_eval import Registry, bootstrap_mean, entity_table, summary, write_json
-from features import build_stores, pair_features
+from features import PoolIDF, RecordStore, pair_features
 from pipelines import PipelineConfig, Workspace, add_ret_ctx, apply_bundle, fit_bundle
 
 
@@ -72,12 +72,39 @@ def test_candidates(paths: Paths, cfg: PipelineConfig, ws: Workspace, batch_chun
     return out_dir, q_chunks
 
 
+def _positions(index: pd.Index, ids) -> np.ndarray:
+    r = index.get_indexer(pd.Index(ids))
+    if (r < 0).any():
+        raise KeyError(f"{int((r < 0).sum())} candidate ids have no cleaned record, e.g. {np.asarray(ids)[r < 0][:3]}")
+    return r
+
+
+def _batches(parts: list[Path], s1_batch: int):
+    """(label, candidate frame) per batch of at most s1_batch S1; an S1's candidates stay in one batch."""
+    for part in parts:
+        c = pd.read_parquet(part)
+        s1u = c.s1_entity_id.unique()
+        n = max(1, -(-len(s1u) // max(s1_batch, 1)))
+        if n == 1:
+            yield part.name, c
+            continue
+        grp = pd.Series(np.arange(len(s1u)) * n // len(s1u), index=s1u)
+        b = c.s1_entity_id.map(grp).to_numpy()
+        for i in range(n):
+            yield f"{part.name}[{i + 1}/{n}]", c[b == i].reset_index(drop=True)
+        del c
+
+
 def predict_test(paths: Paths, cfg: PipelineConfig, b, ws: Workspace, batch_chunks: int = 2,
-                 feature_chunk: int = 500_000, unique: bool = True) -> dict:
+                 feature_chunk: int = 500_000, unique: bool = True, s1_batch: int = 100_000) -> dict:
     """unique: keep each external record for at most one S1 (its highest-scoring one). Train gold is strictly
     one-to-one (0 of 7.6M linked S2/S3 records belong to more than one S1), and on the full test set all 1.73M
     S1 compete for the same records, so generic names (SARL, COMMERCE, PARIS) otherwise pile many S1 onto
-    one record. The dev OOF score under-states this: there only 100k S1 compete."""
+    one record. The dev OOF score under-states this: there only 100k S1 compete.
+
+    Memory: the IDF is fitted once on the whole pool, but record stores and pair features are built per
+    batch of `s1_batch` S1 (with only that batch's candidates), so peak memory does not grow with the
+    pool (~10M records) or with a wide blocking config."""
     cand_dir, q_chunks = test_candidates(paths, cfg, ws, batch_chunks)
     s1_ids = B.chunk_ids(q_chunks).astype(str)
     t0 = time.time()
@@ -86,9 +113,10 @@ def predict_test(paths: Paths, cfg: PipelineConfig, b, ws: Workspace, batch_chun
     parts = sorted(cand_dir.glob("part-*.parquet"))
     keep = pd.concat([pd.read_parquet(p_, columns=["cand_entity_id"]).cand_entity_id for p_ in parts]).unique() \
         if parts else []
-    L, R = build_stores(s1, pool, keep_pool_ids=keep)
-    del pool
-    log(f"test record stores ready ({time.time() - t0:.0f}s)")
+    idf = PoolIDF(pool)                                   # IDF over the whole pool, as in training
+    pool = pool[pool.entity_id.isin(pd.Index(keep))].reset_index(drop=True)
+    s1_pos, pool_pos = pd.Index(s1.entity_id), pd.Index(pool.entity_id)
+    log(f"test IDF ready; {len(pool):,} pool records are candidates ({time.time() - t0:.0f}s)")
     dense = None
     if cfg.dense:
         import neural
@@ -101,9 +129,8 @@ def predict_test(paths: Paths, cfg: PipelineConfig, b, ws: Workspace, batch_chun
     n_pairs = 0
     with open(cand_tsv, "w", encoding="utf-8", newline="\n") as fh:
         fh.write("source1_entity_id\tcandidate_entity_ids\n")
-        for part in parts:
+        for part, c in _batches(parts, s1_batch):
             t1 = time.time()
-            c = pd.read_parquet(part)
             for p in PASS_NAMES:                       # passes not used by this config are absent
                 for col in (f"score_{p}", f"rank_{p}"):
                     if col not in c:
@@ -111,7 +138,10 @@ def predict_test(paths: Paths, cfg: PipelineConfig, b, ws: Workspace, batch_chun
             c["n_passes"] = c[[f"score_{p}" for p in PASS_NAMES]].notna().sum(axis=1)
             c["label"] = 0
             if len(c):
+                L = RecordStore(s1.iloc[_positions(s1_pos, c.s1_entity_id.unique())]).apply_idf(idf)
+                R = RecordStore(pool.iloc[_positions(pool_pos, c.cand_entity_id.unique())]).apply_idf(idf)
                 f = pair_features(L, R, c.s1_entity_id.to_numpy(), c.cand_entity_id.to_numpy(), chunk=feature_chunk)
+                del L, R
                 c = pd.concat([c.reset_index(drop=True), f], axis=1)
                 if dense is not None:
                     import neural
@@ -129,7 +159,7 @@ def predict_test(paths: Paths, cfg: PipelineConfig, b, ws: Workspace, batch_chun
                 fh.write(f"{s}\t{l}\n")
             seen.update(lists.index)
             preds.append(c.loc[c.pred.astype(bool), ["s1_entity_id", "cand_entity_id", "p"]])
-            log(f"{part.name}: {len(ent):,} S1, {len(c):,} pairs, {int(c.pred.sum()):,} predicted ({time.time() - t1:.0f}s)")
+            log(f"{part}: {len(ent):,} S1, {len(c):,} pairs, {int(c.pred.sum()):,} predicted ({time.time() - t1:.0f}s)")
         for s in s1_ids:                               # S1 with no candidates: empty row
             if s not in seen:
                 fh.write(f"{s}\t\n")
@@ -193,14 +223,14 @@ def make_zip(paths: Paths, team: str, repo_root: Path) -> Path:
 
 def run(paths: Paths, ws: Workspace, reg: Registry, name: str = "best", batch_chunks: int = 2,
         team: str | None = None, repo_root: Path | None = None, feature_chunk: int = 500_000,
-        unique: bool = True) -> dict:
+        unique: bool = True, s1_batch: int = 100_000) -> dict:
     name = choose(reg, name)
     cfg = PipelineConfig.from_dict(reg.load(name, "config.json"))
     log(f"submitting pipeline {name}: {cfg.description}")
     b = final_bundle(cfg, ws, reg)
     hold = holdout(cfg, b, ws, reg)
     stats = predict_test(paths, cfg, b, ws, batch_chunks=batch_chunks, feature_chunk=feature_chunk,
-                         unique=unique)
+                         unique=unique, s1_batch=s1_batch)
     ok, msg = validate(paths)
     log(f"validator: {'PASS' if ok else 'FAIL'}\n{msg}")
     out = {"pipeline": name, "holdout": hold, "test": stats, "validator_pass": ok, "validator_output": msg}

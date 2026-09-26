@@ -261,7 +261,8 @@ def stage_submit(a, paths):
     reg = Registry(paths.exp)
     repo = next((p for p in [HERE, *HERE.parents] if (p / "Documentation_template.md").exists()), paths.work)
     res = submit.run(paths, ws, reg, name=a.run, batch_chunks=a.batch_chunks, team=a.team, repo_root=repo,
-                     feature_chunk=a.feature_chunk, unique=a.unique)
+                     feature_chunk=a.feature_chunk, unique=a.unique,
+                     s1_batch=a.s1_batch)
     if not res["validator_pass"]:
         sys.exit("validator FAILED: see output/submission_report.json")
 
@@ -298,6 +299,8 @@ def main(argv=None):
     ap.add_argument("--strict", action="store_true", help="stop on the first failing pipeline")
     ap.add_argument("--xcountry", action="store_true", default=True)
     ap.add_argument("--no-xcountry", dest="xcountry", action="store_false")
+    ap.add_argument("--s1-batch", type=int, default=100_000,
+                    help="test S1 scored per batch in submit (record stores + features); lower it if memory is tight")
     ap.add_argument("--no-unique", dest="unique", action="store_false",
                     help="allow one external record in several S1 matches (default: unique assignment, gold is 1:1)")
     ap.add_argument("--sae", action="store_true", default=True)

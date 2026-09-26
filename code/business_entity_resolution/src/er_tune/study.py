@@ -28,7 +28,7 @@ from . import spaces
 def _storage(ws: Workspace) -> str:
     d = ws.paths.exp / "hpo"
     d.mkdir(parents=True, exist_ok=True)
-    return f"sqlite:///{d / 'optuna.db'}"
+    return f"sqlite:///{(d / 'optuna.db').resolve().as_posix()}"   # forward slashes: also valid on Windows
 
 
 def _sampler(kind: str, seed: int, multi_objective: bool = False):

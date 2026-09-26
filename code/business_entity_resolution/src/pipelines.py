@@ -11,7 +11,7 @@ so no score used by a later stage was produced by a model trained on the same la
 from __future__ import annotations
 
 import json
-import resource
+import sys
 import time
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
@@ -264,7 +264,19 @@ def apply_bundle(b: Bundle, df: pd.DataFrame, ent: pd.DataFrame) -> pd.DataFrame
 
 # ---- out-of-fold evaluation -----------------------------------------------------------------------------
 def _rss_gb() -> float:
-    return resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024 ** 2
+    """Peak resident memory of this process in GB (`resource` is Unix-only; psutil covers Windows)."""
+    try:
+        import resource
+        kb = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+        return kb / 1024 ** 3 if sys.platform == "darwin" else kb / 1024 ** 2   # macOS reports bytes
+    except ImportError:
+        pass
+    try:
+        import psutil
+        mi = psutil.Process().memory_info()
+        return getattr(mi, "peak_wset", mi.rss) / 1024 ** 3
+    except ImportError:
+        return float("nan")
 
 
 def _slices(e: pd.DataFrame, pairs: pd.DataFrame) -> pd.DataFrame:

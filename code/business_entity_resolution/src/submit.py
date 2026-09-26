@@ -95,7 +95,7 @@ def predict_test(paths: Paths, cfg: PipelineConfig, b, ws: Workspace, batch_chun
     cand_tsv = paths.out / "candidate_pairs.tsv"
     seen, preds = set(), []
     n_pairs = 0
-    with open(cand_tsv, "w") as fh:
+    with open(cand_tsv, "w", encoding="utf-8", newline="\n") as fh:
         fh.write("source1_entity_id\tcandidate_entity_ids\n")
         for part in parts:
             t1 = time.time()
@@ -137,7 +137,7 @@ def predict_test(paths: Paths, cfg: PipelineConfig, b, ws: Workspace, batch_chun
     lists = pred.groupby("s1_entity_id").cand_entity_id.agg(",".join)
     res = pd.DataFrame({"source1_entity_id": s1_ids,
                         "matched_entity_ids": pd.Series(s1_ids).map(lists).fillna("").to_numpy()})
-    res.to_csv(paths.out / "matching_results.tsv", sep="\t", index=False)
+    res.to_csv(paths.out / "matching_results.tsv", sep="\t", index=False, lineterminator="\n", encoding="utf-8")
     stats = {"n_s1": int(len(s1_ids)), "n_candidate_pairs": int(n_pairs), "n_predicted_pairs": int(len(pred)),
              "s1_with_prediction": float((res.matched_entity_ids != "").mean()),
              "cands_per_s1": n_pairs / max(len(s1_ids), 1)}

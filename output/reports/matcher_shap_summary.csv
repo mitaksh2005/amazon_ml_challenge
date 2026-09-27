@@ -1,0 +1,16 @@
+feature,mean_abs_contribution
+shap__addr_char3_cos,1.4542239
+shap__name_miss_idf_max_r,0.67227644
+shap__addr_num_jacc,0.58803296
+shap__name_norm_ratio,0.5683279
+shap__rrf,0.52844024
+shap__legal_state,0.493245
+shap__addr_tset,0.436589
+shap__street_ratio,0.4312956
+shap__addr_shared_idf_max,0.4034554
+shap__addr_partial,0.39679432
+shap__legal_eq,0.36057222
+shap__score_all,0.3269974
+shap__name_miss_idf_max_l,0.31194228
+shap__house_absdiff,0.3102713
+shap__addr_tok_jacc,0.30594957

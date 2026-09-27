@@ -1,0 +1,43 @@
+{
+  "name": "P3-cat",
+  "parent": "P2",
+  "kind": "model",
+  "blocking": "B0",
+  "families": [
+    "STR",
+    "RARE",
+    "NUM",
+    "ADDR",
+    "LEGAL",
+    "TXT",
+    "RET",
+    "CTX"
+  ],
+  "matcher": "cat",
+  "params": "default",
+  "negatives": "E0",
+  "singleton_weight": 3.0,
+  "calibration": "isotonic",
+  "policy": "A",
+  "graph": false,
+  "dense": false,
+  "description": "P2 with CatBoost",
+  "extra": {},
+  "blocking_config": {
+    "all": {
+      "k": 20,
+      "min_score": 0.05
+    },
+    "name": {
+      "k": 10,
+      "min_score": 0.05
+    },
+    "addr": {
+      "k": 10,
+      "min_score": 0.05
+    }
+  },
+  "resolved_params": {},
+  "n_folds": 5,
+  "dev_entities": 100000
+}

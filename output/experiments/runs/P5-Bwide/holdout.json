@@ -1,0 +1,31 @@
+{
+  "pipeline": "P5-Bwide",
+  "macro_f05": 0.9698921670724429,
+  "ceiling_f05": 0.9887059872184927,
+  "n_entities": 50000,
+  "singleton_rate": 0.05724,
+  "singleton_accuracy": 0.9720475192173306,
+  "fp_per_1000_singletons": 29.000698812019568,
+  "affected_per_1000_singletons": 27.95248078266946,
+  "macro_f05_non_singleton": 0.9697613041202882,
+  "pair_precision": 0.9926294011157498,
+  "pair_recall": 0.9319231591908937,
+  "entity_precision": 0.9924671623376623,
+  "entity_recall": 0.9348716984126985,
+  "candidate_pair_recall": 0.9678057127661419,
+  "candidate_macro_recall": 0.9679564796911735,
+  "any_match_coverage": 0.996669353812211,
+  "all_match_coverage": 0.9061903347617634,
+  "cands_per_s1_mean": 41.94694,
+  "cands_per_s1_p95": 57.0,
+  "cands_per_s1_max": 65,
+  "zero_candidate_rate": 0.0,
+  "pred_per_s1_mean": 3.24804,
+  "ci_macro_f05": {
+    "mean": 0.9698921670724429,
+    "lo": 0.9690563134752075,
+    "hi": 0.970820013073862,
+    "se": 0.0004423451995349788,
+    "p_le_0": 0.0
+  }
+}

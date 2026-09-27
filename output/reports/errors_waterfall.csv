@@ -1,0 +1,7 @@
+step,delta
+perfect,1.0
+singleton false positive,-0.00176
+blocking miss,-0.011102586954953513
+matcher false negative,-0.012288974065139145
+matcher false positive,-0.004995805328524678
+achieved,0.9698526336513826

@@ -1,0 +1,13 @@
+feature,fp_minus_tp
+shap__name_miss_idf_max_r,-0.86709267
+shap__addr_num_jacc,-0.6528581
+shap__score_all,-0.43834388
+shap__street_ratio,-0.35164028
+shap__addr_char3_cos,-0.3281784
+shap__legal_state,-0.32054383
+shap__name_tset,0.01922293
+shap__addr_num_conflict,0.01938013
+shap__name_freq_r,0.021617115
+shap__n_cand_ctx,0.021987341
+shap__addr_ratio,0.052488968
+shap__name_num_state,0.08416841

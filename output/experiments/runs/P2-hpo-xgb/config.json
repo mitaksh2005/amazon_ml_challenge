@@ -1,0 +1,53 @@
+{
+  "name": "P2-hpo-xgb",
+  "parent": "P3-xgb",
+  "kind": "model",
+  "blocking": "B0",
+  "families": [
+    "STR",
+    "RARE",
+    "NUM",
+    "ADDR",
+    "LEGAL",
+    "TXT",
+    "RET",
+    "CTX"
+  ],
+  "matcher": "xgb",
+  "params": "hpo",
+  "negatives": "E0",
+  "singleton_weight": 3.0,
+  "calibration": "isotonic",
+  "policy": "A",
+  "graph": false,
+  "dense": false,
+  "description": "P2 features, xgb with Optuna-tuned hyperparameters",
+  "extra": {},
+  "blocking_config": {
+    "all": {
+      "k": 20,
+      "min_score": 0.05
+    },
+    "name": {
+      "k": 10,
+      "min_score": 0.05
+    },
+    "addr": {
+      "k": 10,
+      "min_score": 0.05
+    }
+  },
+  "resolved_params": {
+    "max_depth": 8,
+    "eta": 0.04644172594249052,
+    "min_child_weight": 2.976794403667119,
+    "subsample": 0.9815022851458874,
+    "colsample_bytree": 0.40155427486530687,
+    "gamma": 0.5163839354553224,
+    "alpha": 0.5533818700124611,
+    "reg_lambda": 2.6098126433643456,
+    "pos_weight": 8.761468798754485
+  },
+  "n_folds": 5,
+  "dev_entities": 100000
+}

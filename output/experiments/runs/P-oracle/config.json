@@ -1,0 +1,37 @@
+{
+  "name": "P-oracle",
+  "parent": null,
+  "kind": "oracle",
+  "blocking": "B0",
+  "families": [
+    "STR",
+    "RET"
+  ],
+  "matcher": "lgbm",
+  "params": "default",
+  "negatives": "E0",
+  "singleton_weight": 3.0,
+  "calibration": "isotonic",
+  "policy": "A",
+  "graph": false,
+  "dense": false,
+  "description": "perfect matcher on B0 candidates (= blocking ceiling)",
+  "extra": {},
+  "blocking_config": {
+    "all": {
+      "k": 20,
+      "min_score": 0.05
+    },
+    "name": {
+      "k": 10,
+      "min_score": 0.05
+    },
+    "addr": {
+      "k": 10,
+      "min_score": 0.05
+    }
+  },
+  "resolved_params": {},
+  "n_folds": 5,
+  "dev_entities": 100000
+}

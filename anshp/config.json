@@ -1,0 +1,138 @@
+{
+  "project": "anshp_entity_resolution",
+  "status": "full_audit_cleaning_and_train_index_complete_retrieval_pilot_running",
+  "seed": 2026,
+  "source_columns": [
+    "entity_id",
+    "business_name",
+    "business_address",
+    "country"
+  ],
+  "split_groups": [
+    "fit",
+    "early_stop",
+    "threshold_tune",
+    "holdout"
+  ],
+  "blocking_channels": [
+    "fielded_token_bm25",
+    "character_ngrams",
+    "initials_joined_names",
+    "address_numeric_anchors"
+  ],
+  "selection_metric": "macro_f0.5",
+  "split_protocol": {
+    "group_key": "source1_entity_id",
+    "stratify_by": [
+      "country",
+      "singleton",
+      "match_count_bucket"
+    ],
+    "holdout_external_positives_excluded_from_supervised_training": true,
+    "evaluation_negative_sampling": false,
+    "country_transfer_checks": true
+  },
+  "model": {
+    "id": "Qwen/Qwen3-Reranker-0.6B",
+    "revision": "e61197ed45024b0ed8a2d74b80b4d909f1255473",
+    "tokenizer_id": "Qwen/Qwen3-Reranker-0.6B",
+    "tokenizer_revision": "e61197ed45024b0ed8a2d74b80b4d909f1255473",
+    "require_pinned_revision_before_model_run": true,
+    "objective": "independent_yes_no_bce",
+    "score": "logit_yes_minus_logit_no",
+    "max_pair_tokens": 256,
+    "padding_side": "left",
+    "precision": "bf16_if_supported_else_profile_fp16",
+    "free_text_generation": false,
+    "score_all_retained_candidates": true
+  },
+  "training": {
+    "adapter": "lora",
+    "lora": {
+      "r": 16,
+      "alpha": 32,
+      "dropout": 0.05,
+      "target_modules": [
+        "q_proj",
+        "k_proj",
+        "v_proj",
+        "o_proj"
+      ]
+    },
+    "optimizer": "adamw",
+    "learning_rate": 0.0001,
+    "weight_decay": 0.01,
+    "warmup_ratio": 0.05,
+    "micro_batch_size": 4,
+    "max_epochs": 2,
+    "pilot_reference_count": 10000,
+    "hard_negatives_per_reference": 8,
+    "easy_negatives_per_reference": 2,
+    "hard_negative_refreshes": 1,
+    "reference_normalized_loss": true,
+    "gradient_checkpointing": false,
+    "use_cache_during_training": false,
+    "settings_status": "GPU_memory_and_gradients_profiled_quality_not_evaluated",
+    "reference_groups_per_step": 8
+  },
+  "blocking": {
+    "country_partition_requires_truth_audit": true,
+    "fusion": "reciprocal_rank_fusion",
+    "rrf_constant": 60,
+    "candidate_cap_experiments": [
+      10,
+      20,
+      40
+    ],
+    "selected_candidate_cap": null,
+    "overflow_policy": "deterministic_rrf_top_k_with_saved_overflow_flag",
+    "learned_compressor": false,
+    "dense_rescue": {
+      "enabled": false,
+      "model_id": "Qwen/Qwen3-Embedding-0.6B",
+      "revision": null,
+      "initial_mode": "frozen",
+      "admission": "measured_incremental_recall_and_total_cost",
+      "optional_training": "multi_positive_supervised_contrastive_on_fit_groups_only"
+    },
+    "backend": "sqlite_fts5_country_partitions",
+    "channel_limit": 80
+  },
+  "decision": {
+    "score_space": "raw_yes_no_logit_difference",
+    "threshold": null,
+    "threshold_comparator": ">=",
+    "singleton_behavior": "empty_set_when_no_candidate_passes",
+    "candidate_softmax": false,
+    "force_top_one": false,
+    "learned_stacker": false,
+    "global_threshold_fallback_for_unseen_countries": true
+  },
+  "compute": {
+    "research_budget_usd": 200,
+    "budget_source": "research_report_planning_assumption",
+    "profile_required_before_full_run": true,
+    "profile_includes": [
+      "tokenization",
+      "forward_backward",
+      "inference",
+      "io",
+      "peak_memory"
+    ],
+    "full_run_cost_projection_usd": null,
+    "local_gpu_profile": "reports/real_qwen_gpu_profile.json",
+    "local_inference_pairs_per_second": 36.42011444209327,
+    "local_test_hours_at_candidate_caps": {
+      "10": 132.1418753330423,
+      "20": 264.2837506660846,
+      "40": 528.5675013321692
+    },
+    "real_model_optimizer_steps": 0
+  },
+  "split_fractions": {
+    "fit": 0.7,
+    "early_stop": 0.1,
+    "threshold_tune": 0.1,
+    "holdout": 0.1
+  }
+}

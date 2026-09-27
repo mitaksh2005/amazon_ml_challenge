@@ -1,0 +1,336 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Pipeline comparison</title><style>
+:root{--surface:#fcfcfb;--ink:#0b0b0b;--ink2:#52514e;--grid:#e6e5e1}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--surface:#1a1a19;--ink:#fff;--ink2:#c3c2b7;--grid:#383835}}
+:root[data-theme="dark"]{--surface:#1a1a19;--ink:#fff;--ink2:#c3c2b7;--grid:#383835}
+body{background:var(--surface);color:var(--ink);font:14px/1.45 system-ui,sans-serif;margin:0 auto;max-width:1200px;padding:16px}
+h1,h2{font-weight:600} .note{color:var(--ink2)} img{max-width:100%;height:auto;border:1px solid var(--grid);border-radius:6px;background:#fcfcfb}
+table{border-collapse:collapse;font-size:12px;display:block;overflow-x:auto} td,th{border-bottom:1px solid var(--grid);padding:4px 8px;text-align:left;vertical-align:top}
+figure{margin:24px 0} figcaption{font-weight:600;margin-bottom:6px}
+</style></head><body><h1>Entity-resolution pipeline comparison</h1><p class='note'>Selected pipeline: <b>P5-Bwide</b>. All scores are out-of-fold on the dev sample (5 grouped folds) unless stated. Every figure has a CSV of its numbers next to it.</p>
+<p>4 of 14 changes pass the admission gate (paired 95% CI lower bound &gt; 0 and Δ ≥ +0.001): P0, P1, P2, P5-Bwide.</p><p>Holdout (scored once): macro F0.5 <b>0.9699</b>.</p>
+<h2>Leaderboard</h2>
+<table class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th>name</th>
+      <th>parent</th>
+      <th>macro_f05</th>
+      <th>macro_f05_lo</th>
+      <th>macro_f05_hi</th>
+      <th>ceiling_f05</th>
+      <th>singleton_accuracy</th>
+      <th>fp_per_1000_singletons</th>
+      <th>pair_precision</th>
+      <th>pair_recall</th>
+      <th>cands_per_s1_mean</th>
+      <th>wall_s</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>P-oracle</td>
+      <td>NaN</td>
+      <td>0.9862</td>
+      <td>0.9858</td>
+      <td>0.9866</td>
+      <td>0.9862</td>
+      <td>1.0000</td>
+      <td>0.0000</td>
+      <td>1.0000</td>
+      <td>0.9608</td>
+      <td>26.7443</td>
+      <td>8.0651</td>
+    </tr>
+    <tr>
+      <td>P5-Bwide</td>
+      <td>P4</td>
+      <td>0.9699</td>
+      <td>0.9692</td>
+      <td>0.9705</td>
+      <td>0.9889</td>
+      <td>0.9687</td>
+      <td>33.8018</td>
+      <td>0.9921</td>
+      <td>0.9333</td>
+      <td>41.8542</td>
+      <td>1444.7314</td>
+    </tr>
+    <tr>
+      <td>P6</td>
+      <td>P4</td>
+      <td>0.9677</td>
+      <td>0.9671</td>
+      <td>0.9684</td>
+      <td>0.9862</td>
+      <td>0.9715</td>
+      <td>30.7774</td>
+      <td>0.9924</td>
+      <td>0.9272</td>
+      <td>26.7443</td>
+      <td>1065.2249</td>
+    </tr>
+    <tr>
+      <td>P8</td>
+      <td>P4</td>
+      <td>0.9674</td>
+      <td>0.9667</td>
+      <td>0.9680</td>
+      <td>0.9862</td>
+      <td>0.9669</td>
+      <td>35.9367</td>
+      <td>0.9919</td>
+      <td>0.9274</td>
+      <td>26.7443</td>
+      <td>1128.8421</td>
+    </tr>
+    <tr>
+      <td>P4-C</td>
+      <td>P4</td>
+      <td>0.9673</td>
+      <td>0.9667</td>
+      <td>0.9680</td>
+      <td>0.9862</td>
+      <td>0.9612</td>
+      <td>41.4517</td>
+      <td>0.9930</td>
+      <td>0.9245</td>
+      <td>26.7443</td>
+      <td>1125.0043</td>
+    </tr>
+    <tr>
+      <td>P2-hpo-xgb</td>
+      <td>P3-xgb</td>
+      <td>0.9673</td>
+      <td>0.9667</td>
+      <td>0.9680</td>
+      <td>0.9862</td>
+      <td>0.9680</td>
+      <td>34.5134</td>
+      <td>0.9922</td>
+      <td>0.9265</td>
+      <td>26.7443</td>
+      <td>495.5389</td>
+    </tr>
+    <tr>
+      <td>P2-hpo-lgbm</td>
+      <td>P2</td>
+      <td>0.9673</td>
+      <td>0.9667</td>
+      <td>0.9679</td>
+      <td>0.9862</td>
+      <td>0.9632</td>
+      <td>39.8506</td>
+      <td>0.9920</td>
+      <td>0.9273</td>
+      <td>26.7443</td>
+      <td>1053.7684</td>
+    </tr>
+    <tr>
+      <td>P4</td>
+      <td>P2-hpo-lgbm</td>
+      <td>0.9673</td>
+      <td>0.9667</td>
+      <td>0.9680</td>
+      <td>0.9862</td>
+      <td>0.9639</td>
+      <td>38.9610</td>
+      <td>0.9914</td>
+      <td>0.9286</td>
+      <td>26.7443</td>
+      <td>1086.1486</td>
+    </tr>
+    <tr>
+      <td>P2</td>
+      <td>P1</td>
+      <td>0.9669</td>
+      <td>0.9662</td>
+      <td>0.9675</td>
+      <td>0.9862</td>
+      <td>0.9637</td>
+      <td>38.4273</td>
+      <td>0.9922</td>
+      <td>0.9253</td>
+      <td>26.7443</td>
+      <td>310.7688</td>
+    </tr>
+    <tr>
+      <td>P3-xgb</td>
+      <td>P2</td>
+      <td>0.9667</td>
+      <td>0.9660</td>
+      <td>0.9673</td>
+      <td>0.9862</td>
+      <td>0.9644</td>
+      <td>37.8936</td>
+      <td>0.9923</td>
+      <td>0.9245</td>
+      <td>26.7443</td>
+      <td>194.2135</td>
+    </tr>
+    <tr>
+      <td>P4-E1</td>
+      <td>P4</td>
+      <td>0.9665</td>
+      <td>0.9659</td>
+      <td>0.9672</td>
+      <td>0.9862</td>
+      <td>0.9680</td>
+      <td>34.6913</td>
+      <td>0.9920</td>
+      <td>0.9248</td>
+      <td>26.7443</td>
+      <td>996.7702</td>
+    </tr>
+    <tr>
+      <td>P3-cat</td>
+      <td>P2</td>
+      <td>0.9660</td>
+      <td>0.9654</td>
+      <td>0.9667</td>
+      <td>0.9862</td>
+      <td>0.9628</td>
+      <td>39.6727</td>
+      <td>0.9920</td>
+      <td>0.9235</td>
+      <td>26.7443</td>
+      <td>1157.5866</td>
+    </tr>
+    <tr>
+      <td>P1</td>
+      <td>P0</td>
+      <td>0.9481</td>
+      <td>0.9473</td>
+      <td>0.9490</td>
+      <td>0.9862</td>
+      <td>0.9215</td>
+      <td>85.5720</td>
+      <td>0.9821</td>
+      <td>0.8990</td>
+      <td>26.7443</td>
+      <td>405.1338</td>
+    </tr>
+    <tr>
+      <td>P0</td>
+      <td>P-rule</td>
+      <td>0.8941</td>
+      <td>0.8929</td>
+      <td>0.8954</td>
+      <td>0.9862</td>
+      <td>0.8209</td>
+      <td>208.8596</td>
+      <td>0.9569</td>
+      <td>0.8195</td>
+      <td>26.7443</td>
+      <td>386.4984</td>
+    </tr>
+    <tr>
+      <td>P0-lr</td>
+      <td>P0</td>
+      <td>0.8060</td>
+      <td>0.8045</td>
+      <td>0.8076</td>
+      <td>0.9862</td>
+      <td>0.5102</td>
+      <td>688.4896</td>
+      <td>0.8931</td>
+      <td>0.7498</td>
+      <td>26.7443</td>
+      <td>52.0326</td>
+    </tr>
+    <tr>
+      <td>P-rule</td>
+      <td>NaN</td>
+      <td>0.6811</td>
+      <td>0.6792</td>
+      <td>0.6833</td>
+      <td>0.9862</td>
+      <td>0.4924</td>
+      <td>1508.6284</td>
+      <td>0.6582</td>
+      <td>0.6943</td>
+      <td>26.7443</td>
+      <td>15.0314</td>
+    </tr>
+    <tr>
+      <td>P-empty</td>
+      <td>NaN</td>
+      <td>0.0562</td>
+      <td>0.0547</td>
+      <td>0.0576</td>
+      <td>0.9862</td>
+      <td>1.0000</td>
+      <td>0.0000</td>
+      <td>NaN</td>
+      <td>0.0000</td>
+      <td>26.7443</td>
+      <td>14.7960</td>
+    </tr>
+  </tbody>
+</table>
+<h2>Comparison</h2>
+<figure><figcaption>Leaderboard (blue = selected, orange = reference P0) · <a href='compare_leaderboard.csv'>data</a></figcaption><div class='note'>Not drawn (far below the rest): P-empty = 0.0562, P-rule = 0.6811</div><img src='compare_leaderboard.png' alt='Leaderboard (blue = selected, orange = reference P0)'></figure>
+<figure><figcaption>Paired bootstrap Δ vs parent (blue = passes the gate) · <a href='compare_forest.csv'>data</a></figcaption><div class='note'>Not drawn (vs trivial baselines): P0 vs P-rule: +0.2130</div><img src='compare_forest.png' alt='Paired bootstrap Δ vs parent (blue = passes the gate)'></figure>
+<figure><figcaption>Cumulative gains along the parent chain of the selected pipeline · <a href='compare_ablation_waterfall.csv'>data</a></figcaption><img src='compare_ablation_waterfall.png' alt='Cumulative gains along the parent chain of the selected pipeline'></figure>
+<figure><figcaption>Macro F0.5 vs wall time (step = Pareto front) · <a href='compare_pareto_time.csv'>data</a></figcaption><img src='compare_pareto_time.png' alt='Macro F0.5 vs wall time (step = Pareto front)'></figure>
+<figure><figcaption>Δ macro F0.5 vs P0 per slice (blue = better, red = worse) · <a href='compare_slice_heatmap.csv'>data</a></figcaption><div class='note'>Neutral grey (#f0efec) = no change.</div><img src='compare_slice_heatmap.png' alt='Δ macro F0.5 vs P0 per slice (blue = better, red = worse)'></figure>
+<figure><figcaption>Per-fold macro F0.5 (crossing lines = unstable ranking) · <a href='compare_fold_lines.csv'>data</a></figcaption><img src='compare_fold_lines.png' alt='Per-fold macro F0.5 (crossing lines = unstable ranking)'></figure>
+<figure><figcaption>Per-entity agreement: P5-Bwide vs P0 · <a href='compare_entity_scatter.csv'>data</a></figcaption><img src='compare_entity_scatter.png' alt='Per-entity agreement: P5-Bwide vs P0'></figure>
+<figure><figcaption>Train on one country, evaluate on another · <a href='compare_xcountry.csv'>data</a></figcaption><img src='compare_xcountry.png' alt='Train on one country, evaluate on another'></figure>
+<h2>Errors</h2>
+<figure><figcaption>Loss decomposition per pipeline · <a href='errors_loss_decomposition.csv'>data</a></figcaption><img src='errors_loss_decomposition.png' alt='Loss decomposition per pipeline'></figure>
+<figure><figcaption>Loss waterfall (P5-Bwide) · <a href='errors_waterfall.csv'>data</a></figcaption><img src='errors_waterfall.png' alt='Loss waterfall (P5-Bwide)'></figure>
+<figure><figcaption>Share of entities per error type and slice (P5-Bwide) · <a href='errors_by_slice.csv'>data</a></figcaption><img src='errors_by_slice.png' alt='Share of entities per error type and slice (P5-Bwide)'></figure>
+<figure><figcaption><a href='errors_gallery.html'>Error gallery (P5-Bwide)</a></figcaption></figure>
+<h2>Blocking</h2>
+<figure><figcaption>Pair recall vs K for each pass and their union · <a href='blocking_recall_at_k.csv'>data</a></figcaption><img src='blocking_recall_at_k.png' alt='Pair recall vs K for each pass and their union'></figure>
+<figure><figcaption>Blocking ceiling F0.5 vs candidates per S1 · <a href='blocking_pareto.csv'>data</a></figcaption><div class='note'>Grey: Optuna NSGA-II trials; blue: Pareto front; labelled points: configs carried into the search.</div><img src='blocking_pareto.png' alt='Blocking ceiling F0.5 vs candidates per S1'></figure>
+<figure><figcaption>True pairs by combination of retrieving passes (B0) · <a href='blocking_pass_combinations.csv'>data</a></figcaption><div class='note'>Pairs found only by one pass show that pass&#x27;s unique contribution.</div><img src='blocking_pass_combinations.png' alt='True pairs by combination of retrieving passes (B0)'></figure>
+<figure><figcaption>Ceiling loss when each pass is dropped · <a href='blocking_leave_one_out.csv'>data</a></figcaption><img src='blocking_leave_one_out.png' alt='Ceiling loss when each pass is dropped'></figure>
+<figure><figcaption>Rank of true matches within each pass · <a href='blocking_rank_hist.csv'>data</a></figcaption><div class='note'>Mass just past the orange line = recall a larger k buys; missing mass = needs a new channel.</div><img src='blocking_rank_hist.png' alt='Rank of true matches within each pass'></figure>
+<figure><figcaption>Candidates per S1 by country (B0) · <a href='blocking_candidate_counts.csv'>data</a></figcaption><img src='blocking_candidate_counts.png' alt='Candidates per S1 by country (B0)'></figure>
+<figure><figcaption>Missed true pairs by heuristic reason · <a href='blocking_miss_taxonomy.csv'>data</a></figcaption><div class='note'>&#x27;wide&#x27; = not in the widest candidate set; &#x27;B0&#x27; = missed by the base config.</div><img src='blocking_miss_taxonomy.png' alt='Missed true pairs by heuristic reason'></figure>
+<figure><figcaption>Pair recall by country and source (B0) · <a href='blocking_recall_by_slice.csv'>data</a></figcaption><img src='blocking_recall_by_slice.png' alt='Pair recall by country and source (B0)'></figure>
+<h2>Matcher</h2>
+<figure><figcaption>Precision-recall curves (OOF), dots = chosen operating point · <a href='matcher_pr_curves.csv'>data</a></figcaption><img src='matcher_pr_curves.png' alt='Precision-recall curves (OOF), dots = chosen operating point'></figure>
+<figure><figcaption>Score density by pair type (P5-Bwide) · <a href='matcher_score_density.csv'>data</a></figcaption><div class='note'>Hard negatives overlapping the true-match mass are where precision is lost.</div><img src='matcher_score_density.png' alt='Score density by pair type (P5-Bwide)'></figure>
+<figure><figcaption>Top-30 features by gain (P5-Bwide) · <a href='matcher_importance.csv'>data</a></figcaption><img src='matcher_importance.png' alt='Top-30 features by gain (P5-Bwide)'></figure>
+<figure><figcaption>Gain by feature family (P5-Bwide) · <a href='matcher_family_importance.csv'>data</a></figcaption><img src='matcher_family_importance.png' alt='Gain by feature family (P5-Bwide)'></figure>
+<figure><figcaption>TreeSHAP summary (P5-Bwide) · <a href='matcher_shap_summary.csv'>data</a></figcaption><img src='matcher_shap_summary.png' alt='TreeSHAP summary (P5-Bwide)'></figure>
+<figure><figcaption>Do conflict / rarity features push towards non-match? (P5-Bwide) · <a href='matcher_shap_dependence.csv'>data</a></figcaption><img src='matcher_shap_dependence.png' alt='Do conflict / rarity features push towards non-match? (P5-Bwide)'></figure>
+<figure><figcaption>Macro F0.5 by country · <a href='slice_country.csv'>data</a></figcaption><img src='slice_country.png' alt='Macro F0.5 by country'></figure>
+<figure><figcaption>Macro F0.5 by name_freq_bin · <a href='slice_name_freq_bin.csv'>data</a></figcaption><img src='slice_name_freq_bin.png' alt='Macro F0.5 by name_freq_bin'></figure>
+<h2>Decision</h2>
+<figure><figcaption>Reliability diagram and calibrator comparison (P5-Bwide) · <a href='decision_reliability.csv'>data</a></figcaption><img src='decision_reliability.png' alt='Reliability diagram and calibrator comparison (P5-Bwide)'></figure>
+<figure><figcaption>Macro F0.5 as a function of the global threshold · <a href='decision_threshold_curves.csv'>data</a></figcaption><div class='note'>A flat top means the chosen threshold is robust.</div><img src='decision_threshold_curves.png' alt='Macro F0.5 as a function of the global threshold'></figure>
+<figure><figcaption>Singleton gate sweep (P5-Bwide) · <a href='decision_singleton_gate.csv'>data</a></figcaption><div class='note'>Separate panels, one scale each: gating more singletons trades against losing real matches.</div><img src='decision_singleton_gate.png' alt='Singleton gate sweep (P5-Bwide)'></figure>
+<figure><figcaption>Per-entity F0.5 distribution (P5-Bwide) · <a href='decision_entity_f_hist.csv'>data</a></figcaption><img src='decision_entity_f_hist.png' alt='Per-entity F0.5 distribution (P5-Bwide)'></figure>
+<figure><figcaption>Macro F0.5 by number of true matches (P5-Bwide) · <a href='decision_f_by_multiplicity.csv'>data</a></figcaption><img src='decision_f_by_multiplicity.png' alt='Macro F0.5 by number of true matches (P5-Bwide)'></figure>
+<h2>Feature space</h2>
+<figure><figcaption>Where false positives sit: SHAP space vs raw features (P5-Bwide) · <a href='space_shap_vs_raw.csv'>data</a></figcaption><div class='note'>Separation that exists in SHAP space but not in raw space was created by the model; an FP cluster in SHAP space shares one failure reason.</div><img src='space_shap_vs_raw.png' alt='Where false positives sit: SHAP space vs raw features (P5-Bwide)'></figure>
+<figure><figcaption>Contribution gap between false and true positives (P5-Bwide) · <a href='space_fp_reasons.csv'>data</a></figcaption><div class='note'>Blue: features pushing FPs up as much as or more than real matches; red: evidence the model saw against them.</div><img src='space_fp_reasons.png' alt='Contribution gap between false and true positives (P5-Bwide)'></figure>
+<h2>Tuning</h2>
+<figure><figcaption>Blocking multi-objective study, NSGA-II vs random · <a href='hpo_blocking_front.csv'>data</a></figcaption><img src='hpo_blocking_front.png' alt='Blocking multi-objective study, NSGA-II vs random'></figure>
+<figure><figcaption>Best-so-far objective, TPE vs random (lgbm) · <a href='hpo_lgbm_history.csv'>data</a></figcaption><img src='hpo_lgbm_history.png' alt='Best-so-far objective, TPE vs random (lgbm)'></figure>
+<figure><figcaption>EDF of trial objectives (lgbm) · <a href='hpo_lgbm_edf.csv'>data</a></figcaption><div class='note'>A curve further right = the sampler finds good regions more often.</div><img src='hpo_lgbm_edf.png' alt='EDF of trial objectives (lgbm)'></figure>
+<figure><figcaption>Hyperparameter importance (lgbm) · <a href='hpo_lgbm_importance.csv'>data</a></figcaption><img src='hpo_lgbm_importance.png' alt='Hyperparameter importance (lgbm)'></figure>
+<figure><figcaption>Objective vs each important parameter (lgbm) · <a href='hpo_lgbm_slices.csv'>data</a></figcaption><div class='note'>Dotted lines = search-range edges; a best value on an edge means the range should widen.</div><img src='hpo_lgbm_slices.png' alt='Objective vs each important parameter (lgbm)'></figure>
+<figure><figcaption>Interaction of the two most important parameters (lgbm)</figcaption><img src='hpo_lgbm_contour.png' alt='Interaction of the two most important parameters (lgbm)'></figure>
+<figure><figcaption>Parallel coordinates of trials (lgbm) · <a href='hpo_lgbm_parallel.csv'>data</a></figcaption><img src='hpo_lgbm_parallel.png' alt='Parallel coordinates of trials (lgbm)'></figure>
+<figure><figcaption>Intermediate values and pruned trials (lgbm) · <a href='hpo_lgbm_pruning.csv'>data</a></figcaption><img src='hpo_lgbm_pruning.png' alt='Intermediate values and pruned trials (lgbm)'></figure>
+<figure><figcaption>Top trials re-evaluated on fresh splits (lgbm); blue = chosen · <a href='hpo_lgbm_reeval.csv'>data</a></figcaption><img src='hpo_lgbm_reeval.png' alt='Top trials re-evaluated on fresh splits (lgbm); blue = chosen'></figure>
+<figure><figcaption>Best-so-far objective, TPE vs random (xgb) · <a href='hpo_xgb_history.csv'>data</a></figcaption><img src='hpo_xgb_history.png' alt='Best-so-far objective, TPE vs random (xgb)'></figure>
+<figure><figcaption>EDF of trial objectives (xgb) · <a href='hpo_xgb_edf.csv'>data</a></figcaption><div class='note'>A curve further right = the sampler finds good regions more often.</div><img src='hpo_xgb_edf.png' alt='EDF of trial objectives (xgb)'></figure>
+<figure><figcaption>Hyperparameter importance (xgb) · <a href='hpo_xgb_importance.csv'>data</a></figcaption><img src='hpo_xgb_importance.png' alt='Hyperparameter importance (xgb)'></figure>
+<figure><figcaption>Objective vs each important parameter (xgb) · <a href='hpo_xgb_slices.csv'>data</a></figcaption><div class='note'>Dotted lines = search-range edges; a best value on an edge means the range should widen.</div><img src='hpo_xgb_slices.png' alt='Objective vs each important parameter (xgb)'></figure>
+<figure><figcaption>Interaction of the two most important parameters (xgb)</figcaption><img src='hpo_xgb_contour.png' alt='Interaction of the two most important parameters (xgb)'></figure>
+<figure><figcaption>Parallel coordinates of trials (xgb) · <a href='hpo_xgb_parallel.csv'>data</a></figcaption><img src='hpo_xgb_parallel.png' alt='Parallel coordinates of trials (xgb)'></figure>
+<figure><figcaption>Intermediate values and pruned trials (xgb) · <a href='hpo_xgb_pruning.csv'>data</a></figcaption><img src='hpo_xgb_pruning.png' alt='Intermediate values and pruned trials (xgb)'></figure>
+<figure><figcaption>Top trials re-evaluated on fresh splits (xgb); blue = chosen · <a href='hpo_xgb_reeval.csv'>data</a></figcaption><img src='hpo_xgb_reeval.png' alt='Top trials re-evaluated on fresh splits (xgb); blue = chosen'></figure>
+<h2>SAE</h2>
+<figure><figcaption>SAE quality: FVU vs L0 and downstream fidelity · <a href='sae_quality.csv'>data</a></figcaption><div class='note'>Interpret only SAEs that lose little downstream AUC (plan: &lt; 1 pp).</div><img src='sae_quality.png' alt='SAE quality: FVU vs L0 and downstream fidelity'></figure>
+<figure><figcaption>Latent firing-frequency histogram (k=32) · <a href='sae_latent_density.csv'>data</a></figcaption><img src='sae_latent_density.png' alt='Latent firing-frequency histogram (k=32)'></figure>
+<figure><figcaption>Match-discriminating SAE latents (volcano-style) · <a href='sae_label_association.csv'>data</a></figcaption><img src='sae_label_association.png' alt='Match-discriminating SAE latents (volcano-style)'></figure>
+<figure><figcaption>Effect of zeroing the most discriminating latents · <a href='sae_ablation.csv'>data</a></figcaption><img src='sae_ablation.png' alt='Effect of zeroing the most discriminating latents'></figure>
+<figure><figcaption><a href='sae_dashboard.html'>SAE latent dashboard (k=32)</a></figcaption></figure>
+<figure><figcaption>Map of SAE decoder directions · <a href='sae_latent_map.csv'>data</a></figcaption><img src='sae_latent_map.png' alt='Map of SAE decoder directions'></figure></body></html>

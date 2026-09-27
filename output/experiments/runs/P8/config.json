@@ -1,0 +1,54 @@
+{
+  "name": "P8",
+  "parent": "P4",
+  "kind": "model",
+  "blocking": "B0",
+  "families": [
+    "STR",
+    "RARE",
+    "NUM",
+    "ADDR",
+    "LEGAL",
+    "TXT",
+    "RET",
+    "CTX"
+  ],
+  "matcher": "lgbm",
+  "params": "hpo",
+  "negatives": "E2",
+  "singleton_weight": 3.0,
+  "calibration": "isotonic",
+  "policy": "B",
+  "graph": true,
+  "dense": false,
+  "description": "P4 + unique assignment of external records (graph H1)",
+  "extra": {},
+  "blocking_config": {
+    "all": {
+      "k": 20,
+      "min_score": 0.05
+    },
+    "name": {
+      "k": 10,
+      "min_score": 0.05
+    },
+    "addr": {
+      "k": 10,
+      "min_score": 0.05
+    }
+  },
+  "resolved_params": {
+    "num_leaves": 215,
+    "learning_rate": 0.016166493179847485,
+    "min_data_in_leaf": 237,
+    "feature_fraction": 0.6608867445847441,
+    "bagging_fraction": 0.9226135431227325,
+    "lambda_l1": 0.049642310754074916,
+    "lambda_l2": 0.38285383109161103,
+    "max_bin": 127,
+    "pos_weight": 4.675195263326762,
+    "bagging_freq": 1
+  },
+  "n_folds": 5,
+  "dev_entities": 100000
+}

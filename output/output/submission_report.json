@@ -1,0 +1,58 @@
+{
+  "pipeline": "P5-Bwide",
+  "holdout": {
+    "pipeline": "P5-Bwide",
+    "macro_f05": 0.9698921670724429,
+    "ceiling_f05": 0.9887059872184927,
+    "n_entities": 50000,
+    "singleton_rate": 0.05724,
+    "singleton_accuracy": 0.9720475192173306,
+    "fp_per_1000_singletons": 29.000698812019568,
+    "affected_per_1000_singletons": 27.95248078266946,
+    "macro_f05_non_singleton": 0.9697613041202882,
+    "pair_precision": 0.9926294011157498,
+    "pair_recall": 0.9319231591908937,
+    "entity_precision": 0.9924671623376623,
+    "entity_recall": 0.9348716984126985,
+    "candidate_pair_recall": 0.9678057127661419,
+    "candidate_macro_recall": 0.9679564796911735,
+    "any_match_coverage": 0.996669353812211,
+    "all_match_coverage": 0.9061903347617634,
+    "cands_per_s1_mean": 41.94694,
+    "cands_per_s1_p95": 57.0,
+    "cands_per_s1_max": 65,
+    "zero_candidate_rate": 0.0,
+    "pred_per_s1_mean": 3.24804,
+    "ci_macro_f05": {
+      "mean": 0.9698921670724429,
+      "lo": 0.9690563134752075,
+      "hi": 0.970820013073862,
+      "se": 0.0004423451995349788,
+      "p_le_0": 0.0
+    }
+  },
+  "test": {
+    "n_s1": 1732544,
+    "n_candidate_pairs": 73715243,
+    "n_predicted_pairs": 5681303,
+    "s1_with_prediction": 0.9402064247718961,
+    "cands_per_s1": 42.54740023918585,
+    "s1_without_candidates": 2,
+    "s1_without_candidates_by_country": {
+      "India": 2
+    },
+    "unique_assignment": true,
+    "links_on_shared_records": 63550,
+    "shared_records": 28414,
+    "max_s1_per_record": 21,
+    "collision_rate_by_country": {
+      "France": 0.0435,
+      "India": 0.0071,
+      "US": 0.0033
+    },
+    "links_dropped_by_unique_assignment": 35136
+  },
+  "validator_pass": true,
+  "validator_output": "ML Challenge 2026 \u2014 submission validator\n  test dir: D:\\amazon_ml_challenge\\6ab10eb3b23ba_student_resource\\student_resource\\dataset\\test\n  required S1 entities: 1732544\n  matching_results.tsv: 1732544 rows (103595 empty, 1628949 non-empty).\n  candidate_pairs.tsv: 1732544 rows (2 empty, 1732542 non-empty).\n\nWARNING: ID-existence check is OFF (the default) \u2014 not checking that matched/candidate IDs exist in the test set. Every other rule is still checked. Re-run with --check-ids to enable it (needs test_source2/3.tsv; uses more memory). A nonexistent ID only lowers your score, never rejects your submission.\nPASS \u2014 no blocking issues found. Safe to submit.\n",
+  "zip": "D:\\amazon_ml_challenge\\output\\EpochAlypse_submission.zip"
+}

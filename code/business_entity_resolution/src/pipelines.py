@@ -22,6 +22,7 @@ import pyarrow.parquet as pq
 
 import models as M
 import xfeatures as X
+import xfeatures2 as X2
 from data import PASS_NAMES, Paths, blocking_configs, log, truncate
 from er_eval import Registry, bootstrap_mean, entity_table, error_type, loss_decomposition, summary, threshold_curve
 from features import FAMILIES
@@ -46,7 +47,7 @@ class PipelineConfig:
     params: str | dict = "default"       # "default" | "hpo" | explicit dict
     negatives: str = "E0"                # E0 all | E1 capped 12/anchor | E2 all + singleton-negative weight
     singleton_weight: float = 3.0
-    calibration: str = "isotonic"        # none | platt | isotonic | beta
+    calibration: str = "isotonic"        # none | platt | isotonic | beta | blend (0.5 iso + 0.5 beta)
     policy: str = "A"                    # A threshold | B singleton gate | C gate + ambiguity/conflict
     graph: bool = False                  # H1 unique assignment of external records
     dense: bool = False                  # add frozen bi-encoder similarity (neural.py)
@@ -86,8 +87,16 @@ class Workspace:
                 assert len(x) == len(df) and (x.s1_entity_id.to_numpy() == df.s1_entity_id.to_numpy()).all() \
                     and (x.cand_entity_id.to_numpy() == df.cand_entity_id.to_numpy()).all(), "xtra rows misaligned"
                 df = pd.concat([df, x[X.XTRA_COLS]], axis=1)
+            if (self.paths.art / f"xtra2_{role}.parquet").exists():
+                x = pd.read_parquet(self.paths.art / f"xtra2_{role}.parquet")
+                assert len(x) == len(df) and (x.s1_entity_id.to_numpy() == df.s1_entity_id.to_numpy()).all() \
+                    and (x.cand_entity_id.to_numpy() == df.cand_entity_id.to_numpy()).all(), "xtra2 rows misaligned"
+                df = pd.concat([df, x[X2.XTRA2_COLS]], axis=1)
             self._pairs[role] = df
         return self._pairs[role]
+
+    def has_role(self, role: str) -> bool:
+        return (self.paths.art / f"pairs_{role}.parquet").exists()
 
     def blocking(self, name: str) -> dict:
         return blocking_configs(self.paths)[name]
@@ -140,6 +149,8 @@ def add_ret_ctx(df: pd.DataFrame, dense: bool = False) -> pd.DataFrame:
         df["dense_gap_best"] = (v - v.groupby(df.s1_entity_id).transform("max")).astype(np.float32)
     if "x_house_eq" in df.columns:
         df = X.add_xctx(df)
+    if "x2_house_eq" in df.columns:
+        df = X2.add_xctx2(df)
     return df
 
 
@@ -147,7 +158,8 @@ def feature_columns(cfg: PipelineConfig) -> list[str]:
     cols = []
     for fam in cfg.families:
         cols += RET_COLS if fam == "RET" else CTX_COLS if fam == "CTX" else \
-            X.XTRA_COLS + X.XCTX_COLS if fam == "XTRA" else FAMILIES[fam]
+            X.XTRA_COLS + X.XCTX_COLS if fam == "XTRA" else \
+            X2.XTRA2_COLS + X2.XCTX2_COLS if fam == "XTRA2" else FAMILIES[fam]
     if cfg.dense:
         cols += DENSE_COLS
     return list(dict.fromkeys(cols))
@@ -222,14 +234,24 @@ def fit_bundle(cfg: PipelineConfig, df: pd.DataFrame, ent: pd.DataFrame, seed: i
     es = fit.s1_entity_id.isin(es_ids).to_numpy()
     rows, w = training_rows(fit, cfg, g_of, seed)
     tr = rows & ~es
+    X_tr, y_tr, w_tr = fit.loc[tr, feats], fit.label.to_numpy()[tr], w[tr]
+    if cfg.extra.get("aug") and ws is not None and ws.has_role(cfg.extra["aug"]):
+        # French-structured copies of training entities (matcher training only, never cal/tune/es)
+        aug = ws.pairs_for(cfg, cfg.extra["aug"])
+        aug = aug[aug.s1_entity_id.isin(np.setdiff1d(fit_ids, es_ids))]
+        a_rows, a_w = training_rows(aug, cfg, g_of, seed)
+        X_tr = pd.concat([X_tr, aug.loc[a_rows, feats]], ignore_index=True)
+        y_tr, w_tr = np.r_[y_tr, aug.label.to_numpy()[a_rows]], np.r_[w_tr, a_w[a_rows]]
+        t["aug_rows"] = int(a_rows.sum())
     model = M.Matcher(cfg.matcher, resolve_params(cfg, ws), seed=seed)
-    model.fit(fit.loc[tr, feats], fit.label.to_numpy()[tr], w[tr],
+    model.fit(X_tr, y_tr, w_tr,
               fit.loc[es, feats] if es.any() else None, fit.label.to_numpy()[es] if es.any() else None)
+    del X_tr
     t["fit_s"] = time.time() - t0
 
     cal = df[r == 1]
     raw_cal = model.predict(cal[feats])
-    calibrators = {m_: M.Calibrator(m_).fit(raw_cal, cal.label.to_numpy()) for m_ in ("none", "platt", "isotonic", "beta")}
+    calibrators = {m_: M.Calibrator(m_).fit(raw_cal, cal.label.to_numpy()) for m_ in ("none", "platt", "isotonic", "beta", "blend")}
     calibrator = calibrators[cfg.calibration]
     singleton = None
     if cfg.policy in ("B", "C"):

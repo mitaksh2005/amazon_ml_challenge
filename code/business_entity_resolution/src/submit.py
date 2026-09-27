@@ -16,6 +16,7 @@ import pandas as pd
 import blocking as B
 import models as M
 import xfeatures as X
+import xfeatures2 as X2
 from data import PASS_NAMES, Paths, key_chunks, load_records, log, passes_for
 from er_eval import Registry, bootstrap_mean, entity_table, summary, write_json
 from features import PoolIDF, RecordStore, pair_features
@@ -123,6 +124,7 @@ def predict_test(paths: Paths, cfg: PipelineConfig, b, ws: Workspace, batch_chun
     log(f"test IDF ready; {len(pool):,} pool records are candidates ({time.time() - t0:.0f}s)")
     xtra = "XTRA" in cfg.families
     XL, XR = (X.XStore(s1), X.XStore(pool)) if xtra else (None, None)
+    XE = X2.XEngine(s1, pool, paths.work / "xfeat_test") if "XTRA2" in cfg.families else None
     dense = None
     if cfg.dense:
         import neural
@@ -151,6 +153,9 @@ def predict_test(paths: Paths, cfg: PipelineConfig, b, ws: Workspace, batch_chun
                 c = pd.concat([c.reset_index(drop=True), f], axis=1)
                 if xtra:
                     xf = X.xtra_features(XL, XR, _positions(s1_pos, c.s1_entity_id), _positions(pool_pos, c.cand_entity_id))
+                    c = pd.concat([c, xf], axis=1)
+                if XE is not None:
+                    xf = XE.features(_positions(s1_pos, c.s1_entity_id), _positions(pool_pos, c.cand_entity_id))
                     c = pd.concat([c, xf], axis=1)
                 if dense is not None:
                     import neural

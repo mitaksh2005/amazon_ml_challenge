@@ -162,6 +162,9 @@ class Calibrator:
             self.method_used = "none"
             return self
         self.method_used = self.method
+        if self.method == "blend":            # 0.5·isotonic + 0.5·beta: smooth, but keeps isotonic's local fit
+            self.parts = [Calibrator("isotonic").fit(p, y), Calibrator("beta").fit(p, y)]
+            return self
         if self.method == "isotonic":
             from sklearn.isotonic import IsotonicRegression
             self.m = IsotonicRegression(out_of_bounds="clip", y_min=0.0, y_max=1.0).fit(p, y)
@@ -179,6 +182,8 @@ class Calibrator:
     def __call__(self, p: np.ndarray) -> np.ndarray:
         if self.method_used == "none":
             return np.asarray(p, np.float64)
+        if self.method == "blend":
+            return 0.5 * self.parts[0](p) + 0.5 * self.parts[1](p)
         if self.method == "isotonic":
             return self.m.predict(p)
         return self.m.predict_proba(self._x(p))[:, 1]

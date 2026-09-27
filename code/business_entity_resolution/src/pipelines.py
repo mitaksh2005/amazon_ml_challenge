@@ -21,6 +21,7 @@ import pandas as pd
 import pyarrow.parquet as pq
 
 import models as M
+import xfeatures as X
 from data import PASS_NAMES, Paths, blocking_configs, log, truncate
 from er_eval import Registry, bootstrap_mean, entity_table, error_type, loss_decomposition, summary, threshold_curve
 from features import FAMILIES
@@ -80,6 +81,11 @@ class Workspace:
             if (self.paths.art / f"dense_{role}.parquet").exists():
                 d = pd.read_parquet(self.paths.art / f"dense_{role}.parquet")
                 df = df.merge(d, on=["s1_entity_id", "cand_entity_id"], how="left")
+            if (self.paths.art / f"xtra_{role}.parquet").exists():
+                x = pd.read_parquet(self.paths.art / f"xtra_{role}.parquet")
+                assert len(x) == len(df) and (x.s1_entity_id.to_numpy() == df.s1_entity_id.to_numpy()).all() \
+                    and (x.cand_entity_id.to_numpy() == df.cand_entity_id.to_numpy()).all(), "xtra rows misaligned"
+                df = pd.concat([df, x[X.XTRA_COLS]], axis=1)
             self._pairs[role] = df
         return self._pairs[role]
 
@@ -132,13 +138,16 @@ def add_ret_ctx(df: pd.DataFrame, dense: bool = False) -> pd.DataFrame:
         v = df.dense_cos.fillna(-1)
         df["dense_rank"] = v.groupby(df.s1_entity_id).rank(ascending=False, method="min").astype(np.float32)
         df["dense_gap_best"] = (v - v.groupby(df.s1_entity_id).transform("max")).astype(np.float32)
+    if "x_house_eq" in df.columns:
+        df = X.add_xctx(df)
     return df
 
 
 def feature_columns(cfg: PipelineConfig) -> list[str]:
     cols = []
     for fam in cfg.families:
-        cols += RET_COLS if fam == "RET" else CTX_COLS if fam == "CTX" else FAMILIES[fam]
+        cols += RET_COLS if fam == "RET" else CTX_COLS if fam == "CTX" else \
+            X.XTRA_COLS + X.XCTX_COLS if fam == "XTRA" else FAMILIES[fam]
     if cfg.dense:
         cols += DENSE_COLS
     return list(dict.fromkeys(cols))

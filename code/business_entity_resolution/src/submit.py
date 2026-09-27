@@ -15,6 +15,7 @@ import pandas as pd
 
 import blocking as B
 import models as M
+import xfeatures as X
 from data import PASS_NAMES, Paths, key_chunks, load_records, log, passes_for
 from er_eval import Registry, bootstrap_mean, entity_table, summary, write_json
 from features import PoolIDF, RecordStore, pair_features
@@ -40,17 +41,20 @@ def final_bundle(cfg: PipelineConfig, ws: Workspace, reg: Registry):
     return b
 
 
-def holdout(cfg: PipelineConfig, b, ws: Workspace, reg: Registry) -> dict:
+def holdout(cfg: PipelineConfig, b, ws: Workspace, reg: Registry, unique: bool = True) -> dict:
     ent = ws.entities("holdout")
     df = ws.pairs_for(cfg, "holdout")
     if b is None:
         out = df.assign(pred=False if cfg.kind == "empty" else df.label.astype(bool))
     else:
         out = apply_bundle(b, df, ent)
-        if cfg.graph:
+        no_ua = summary(entity_table(ent, out))["macro_f05"]
+        if cfg.graph or unique:
             out["pred"] = M.unique_assignment(out, out.pred.to_numpy())
     e = entity_table(ent, out)
-    res = {"pipeline": cfg.name, **summary(e), "ci_macro_f05": bootstrap_mean(e.f05)}
+    res = {"pipeline": cfg.name, **summary(e), "ci_macro_f05": bootstrap_mean(e.f05),
+           "unique_assignment": bool(b is not None and (cfg.graph or unique)),
+           "macro_f05_without_unique": no_ua if b is not None else None}
     write_json(reg.dir(cfg.name) / "holdout.json", res)
     log(f"[{cfg.name}] HOLDOUT macro F0.5 {res['macro_f05']:.4f} "
         f"[{res['ci_macro_f05']['lo']:.4f}, {res['ci_macro_f05']['hi']:.4f}] on {len(e):,} entities")
@@ -117,6 +121,8 @@ def predict_test(paths: Paths, cfg: PipelineConfig, b, ws: Workspace, batch_chun
     pool = pool[pool.entity_id.isin(pd.Index(keep))].reset_index(drop=True)
     s1_pos, pool_pos = pd.Index(s1.entity_id), pd.Index(pool.entity_id)
     log(f"test IDF ready; {len(pool):,} pool records are candidates ({time.time() - t0:.0f}s)")
+    xtra = "XTRA" in cfg.families
+    XL, XR = (X.XStore(s1), X.XStore(pool)) if xtra else (None, None)
     dense = None
     if cfg.dense:
         import neural
@@ -143,6 +149,9 @@ def predict_test(paths: Paths, cfg: PipelineConfig, b, ws: Workspace, batch_chun
                 f = pair_features(L, R, c.s1_entity_id.to_numpy(), c.cand_entity_id.to_numpy(), chunk=feature_chunk)
                 del L, R
                 c = pd.concat([c.reset_index(drop=True), f], axis=1)
+                if xtra:
+                    xf = X.xtra_features(XL, XR, _positions(s1_pos, c.s1_entity_id), _positions(pool_pos, c.cand_entity_id))
+                    c = pd.concat([c, xf], axis=1)
                 if dense is not None:
                     import neural
                     c["dense_cos"] = neural.cosine(dense[0], dense[1], c.s1_entity_id, c.cand_entity_id)
@@ -228,7 +237,7 @@ def run(paths: Paths, ws: Workspace, reg: Registry, name: str = "best", batch_ch
     cfg = PipelineConfig.from_dict(reg.load(name, "config.json"))
     log(f"submitting pipeline {name}: {cfg.description}")
     b = final_bundle(cfg, ws, reg)
-    hold = holdout(cfg, b, ws, reg)
+    hold = holdout(cfg, b, ws, reg, unique=unique)
     stats = predict_test(paths, cfg, b, ws, batch_chunks=batch_chunks, feature_chunk=feature_chunk,
                          unique=unique, s1_batch=s1_batch)
     ok, msg = validate(paths)

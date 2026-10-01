@@ -17,6 +17,29 @@ data ─▶ clean ─▶ key cache ─▶ wide blocking (labelled train sample) 
 
 Everything goes through one entry point, `src/run.py`.
 
+## Reproducing the submitted output (P5-Bwide)
+
+The submitted `output/matching_results.tsv` and `output/candidate_pairs.tsv` come from pipeline **P5-Bwide**.
+It was the best of the 16 pipelines by dev OOF macro F0.5 (0.9699), so `submit` picks it by default.
+`--run P5-Bwide` pins it explicitly:
+
+```bash
+pip install -r requirements.txt          # Python 3.12; or `uv sync --no-dev` from the repo root
+cd src
+python run.py all \
+    --data-dir <path>/student_resource/dataset \
+    --work-dir <work> --team EpochAlypse --run P5-Bwide
+# → <work>/output/matching_results.tsv, <work>/output/candidate_pairs.tsv (validated)
+# → <work>/EpochAlypse_submission.zip
+```
+
+`--data-dir` must contain `train/` and `test/` with the six source TSVs and `train_ground_truth.tsv`. The
+run is resumable: if it is interrupted, rerun the same command. See *Knobs for time and memory* for the
+memory flags.
+
+`run_v2.py` and `xfeatures.py` hold a follow-up variant (P9: extra name and house-number features, beta
+calibration). It is **not** used for the submitted output, and `run.py` does not run it.
+
 ## Quick start (SageMaker)
 
 **Instance:**
